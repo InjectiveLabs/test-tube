@@ -1,0 +1,4 @@
+[submodule "packages/injective-test-tube/injective-core"]
+	path = packages/injective-test-tube/injective-core
+	url = https://github.com/InjectiveLabs/injective-core.git
+	branch = dev
