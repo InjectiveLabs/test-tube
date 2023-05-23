@@ -2,10 +2,10 @@ use injective_std::types::cosmos::bank::v1beta1::{
     MsgSend, MsgSendResponse, QueryAllBalancesRequest, QueryAllBalancesResponse,
     QueryBalanceRequest, QueryBalanceResponse, QueryTotalSupplyRequest, QueryTotalSupplyResponse,
 };
-use test_tube_inj::{fn_execute, fn_query};
+use test_tube::{fn_execute, fn_query};
 
-use test_tube_inj::module::Module;
-use test_tube_inj::runner::Runner;
+use test_tube::module::Module;
+use test_tube::runner::Runner;
 
 pub struct Bank<'a, R: Runner<'a>> {
     runner: &'a R,
@@ -45,7 +45,7 @@ mod tests {
     use injective_std::types::cosmos::base::v1beta1::Coin as BaseCoin;
 
     use crate::{Account, Bank, InjectiveTestApp};
-    use test_tube_inj::Module;
+    use test_tube::Module;
 
     #[test]
     fn bank_integration() {

@@ -1,7 +1,7 @@
 use injective_std::types::injective::exchange::v1beta1;
-use test_tube_inj::module::Module;
-use test_tube_inj::runner::Runner;
-use test_tube_inj::{fn_execute, fn_query};
+use test_tube::module::Module;
+use test_tube::runner::Runner;
+use test_tube::{fn_execute, fn_query};
 
 pub struct Exchange<'a, R: Runner<'a>> {
     runner: &'a R,
@@ -97,7 +97,7 @@ mod tests {
     };
 
     use crate::{Account, Exchange, InjectiveTestApp};
-    use test_tube_inj::Module;
+    use test_tube::Module;
 
     #[test]
     fn exchange_integration() {

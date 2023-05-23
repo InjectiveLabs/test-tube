@@ -3,11 +3,11 @@ use cosmrs::Any;
 use cosmwasm_std::Coin;
 
 use prost::Message;
-use test_tube_inj::account::SigningAccount;
+use test_tube::account::SigningAccount;
 
-use test_tube_inj::runner::result::{RunnerExecuteResult, RunnerResult};
-use test_tube_inj::runner::Runner;
-use test_tube_inj::BaseApp;
+use test_tube::runner::result::{RunnerExecuteResult, RunnerResult};
+use test_tube::runner::Runner;
+use test_tube::BaseApp;
 
 const FEE_DENOM: &str = "inj";
 const INJ_ADDRESS_PREFIX: &str = "inj";
@@ -161,10 +161,10 @@ mod tests {
     use crate::module::Wasm;
     use crate::runner::app::InjectiveTestApp;
     use crate::Bank;
-    use test_tube_inj::account::{Account, FeeSetting};
-    use test_tube_inj::module::Module;
-    use test_tube_inj::runner::*;
-    use test_tube_inj::ExecuteResponse;
+    use test_tube::account::{Account, FeeSetting};
+    use test_tube::module::Module;
+    use test_tube::runner::*;
+    use test_tube::ExecuteResponse;
 
     #[test]
     fn test_init_accounts() {

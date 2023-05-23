@@ -2,9 +2,9 @@ use injective_std::types::injective::oracle::v1beta1::{
     MsgRelayPriceFeedPrice, MsgRelayPriceFeedPriceResponse, QueryModuleStateRequest,
     QueryModuleStateResponse, QueryOraclePriceRequest, QueryOraclePriceResponse,
 };
-use test_tube_inj::module::Module;
-use test_tube_inj::runner::Runner;
-use test_tube_inj::{fn_execute, fn_query};
+use test_tube::module::Module;
+use test_tube::runner::Runner;
+use test_tube::{fn_execute, fn_query};
 
 pub struct Oracle<'a, R: Runner<'a>> {
     runner: &'a R,
