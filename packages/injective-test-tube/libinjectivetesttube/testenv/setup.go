@@ -42,6 +42,7 @@ import (
 	"github.com/InjectiveLabs/injective-core/injective-chain/app"
 	exchangetypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/exchange/types"
 	tokenfactorytypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/tokenfactory/types"
+	wasmxtypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/wasmx/types"
 )
 
 type TestEnv struct {
@@ -136,6 +137,14 @@ func SetupInjectiveApp() (*app.InjectiveApp, []byte) {
 		Params: exchangeParams,
 	}
 	genesisState[exchangetypes.ModuleName] = encCfg.Marshaler.MustMarshalJSON(&exchangeGen)
+
+	// Set up wasmx genesis state
+	wasmxParams := wasmxtypes.DefaultParams()
+	wasmxParams.IsExecutionEnabled = true
+	wasmxGen := wasmxtypes.GenesisState{
+		Params: wasmxParams,
+	}
+	genesisState[wasmxtypes.ModuleName] = encCfg.Marshaler.MustMarshalJSON(&wasmxGen)
 
 	stateBytes, err := json.MarshalIndent(genesisState, "", " ")
 
