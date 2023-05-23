@@ -245,6 +245,14 @@ Module wrappers provides convenient functions to interact with the appchain's mo
 Let's try interact with `Exchange` module:
 
 ```rust
+use cosmwasm_std::{Addr, Coin};
+use injective_std::types::injective::exchange::v1beta1::{
+    MarketStatus, MsgInstantSpotMarketLaunch, 
+    QuerySpotMarketsRequest, QuerySpotMarketsResponse, SpotMarket,
+};
+use injective_test_tube::{Account, Exchange, InjectiveTestApp};
+use test_tube::Module;
+
 let app = InjectiveTestApp::new();
 let signer = app
     .init_account(&[
