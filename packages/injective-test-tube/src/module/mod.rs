@@ -6,8 +6,8 @@ mod oracle;
 mod tokenfactory;
 mod wasm;
 
-pub use test_tube::macros;
-pub use test_tube::module::Module;
+pub use test_tube_inj::macros;
+pub use test_tube_inj::module::Module;
 
 pub use bank::Bank;
 pub use exchange::Exchange;

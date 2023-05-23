@@ -4,6 +4,8 @@
 
 This repo contains [`injective-test-tube`] which uses a delta of [`osmosis-test-tube`](https://github.com/osmosis-labs/test-tube/tree/main/packages/osmosis-test-tube) to enable testing against `injective-core`.
 
+Additionally, this repo contains [`test-tube-inj`](https://github.com/InjectiveLabs/test-tube/tree/main/packages/test-tube) the flavour of `test-tube` compatible with Injective core chain.
+
 ## Features
 
 - Test your CosmWasm smart contracts using Rust without the need to write Go code or learn Go
@@ -19,7 +21,7 @@ So if your contract just interact with common modules like Bank, Staking, and Di
 
 ## Contributing
 
-We welcome contributions to `test-tube`! If you find a bug or have an idea for a new feature, please open an issue or submit a pull request.
+We welcome contributions to `injective-test-tube`! If you find a bug or have an idea for a new feature, please open an issue or submit a pull request.
 
 ## License
 
