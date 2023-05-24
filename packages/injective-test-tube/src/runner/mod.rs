@@ -18,11 +18,11 @@ pub mod app;
 //     use osmosis_std::types::osmosis::tokenfactory::v1beta1::{
 //         MsgCreateDenom, MsgCreateDenomResponse,
 //     };
-//     use test_tube::account::Account;
-//     use test_tube::runner::error::RunnerError::{ExecuteError, QueryError};
-//     use test_tube::runner::result::RawResult;
-//     use test_tube::runner::Runner;
-//     use test_tube::{Module, RunnerExecuteResult};
+//     use test_tube_inj::account::Account;
+//     use test_tube_inj::runner::error::RunnerError::{ExecuteError, QueryError};
+//     use test_tube_inj::runner::result::RawResult;
+//     use test_tube_inj::runner::Runner;
+//     use test_tube_inj::{Module, RunnerExecuteResult};
 
 //     #[derive(::prost::Message)]
 //     struct AdhocRandomQueryRequest {
