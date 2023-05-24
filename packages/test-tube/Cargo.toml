@@ -11,7 +11,7 @@ version = "1.1.0"
 [dependencies]
 base64 = "0.13.0"
 cosmrs = {version = "0.14.0", features = ["cosmwasm", "rpc"]}
-cosmwasm-std = "1.1.2"
+cosmwasm-std = { version = "1.1.2", features = ["stargate"] }
 tendermint-proto = "0.32.0"
 prost = "0.11.0"
 serde = "1.0.144"
