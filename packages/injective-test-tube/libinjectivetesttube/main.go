@@ -108,7 +108,7 @@ func IncreaseTime(envId uint64, seconds uint64) {
 //export BeginBlock
 func BeginBlock(envId uint64) {
 	env := loadEnv(envId)
-	env.BeginNewBlock(false, 5)
+	env.BeginNewBlock(false, 1)
 	envRegister.Store(envId, env)
 }
 

@@ -74,9 +74,9 @@ func SetupInjectiveApp() (*app.InjectiveApp, []byte) {
 		true,
 		map[int64]bool{},
 		app.DefaultNodeHome,
-		5,
+		0,
 		encCfg,
-		app.TestAppOptions{},
+		DebugAppOptions{},
 		baseapp.SetChainID("injective-777"),
 	)
 
@@ -139,10 +139,13 @@ func SetupInjectiveApp() (*app.InjectiveApp, []byte) {
 	genesisState[exchangetypes.ModuleName] = encCfg.Marshaler.MustMarshalJSON(&exchangeGen)
 
 	// Set up wasmx genesis state
-	wasmxParams := wasmxtypes.DefaultParams()
-	wasmxParams.IsExecutionEnabled = true
 	wasmxGen := wasmxtypes.GenesisState{
-		Params: wasmxParams,
+		Params: wasmxtypes.Params{
+			IsExecutionEnabled:    true,
+			MaxBeginBlockTotalGas: 42000000,
+			MaxContractGasLimit:   3500000,
+			MinGasPrice:           1000,
+		},
 	}
 	genesisState[wasmxtypes.ModuleName] = encCfg.Marshaler.MustMarshalJSON(&wasmxGen)
 
@@ -203,7 +206,6 @@ func (env *TestEnv) GetValidatorPrivateKey() []byte {
 
 // beginNewBlockWithProposer begins a new block with a proposer.
 func (env *TestEnv) beginNewBlockWithProposer(executeNextEpoch bool, proposer sdk.ConsAddress, timeIncreaseSeconds uint64) {
-	// validator, found := env.App.StakingKeeper.GetValidator(env.Ctx, proposer)
 	validator, found := env.App.StakingKeeper.GetValidatorByConsAddr(env.Ctx, proposer)
 
 	if !found {
@@ -217,7 +219,6 @@ func (env *TestEnv) beginNewBlockWithProposer(executeNextEpoch bool, proposer sd
 	valAddr := valConsAddr.Bytes()
 
 	newBlockTime := env.Ctx.BlockTime().Add(time.Duration(timeIncreaseSeconds) * time.Second)
-
 	header := tmproto.Header{ChainID: "injective-777", Height: env.Ctx.BlockHeight() + 1, Time: newBlockTime}
 	newCtx := env.Ctx.WithBlockTime(newBlockTime).WithBlockHeight(env.Ctx.BlockHeight() + 1)
 	env.Ctx = newCtx
@@ -246,15 +247,10 @@ func (env *TestEnv) SetDefaultValidator(consAddr sdk.ConsAddress) {
 }
 
 func (env *TestEnv) setupValidator(bondStatus stakingtypes.BondStatus) sdk.ValAddress {
-	// valPk := secp256k1.GenPrivKey()
-	// set up the validator
 	valPk := ed25519.GenPrivKey()
-
-	// env.Validator = valPk.Bytes()
-
 	valPub := valPk.PubKey()
-
 	valAddr := sdk.ValAddress(valPub.Address())
+
 	bondDenom := env.App.StakingKeeper.GetParams(env.Ctx).BondDenom
 	selfBond := sdk.NewCoins(sdk.Coin{Amount: sdk.NewInt(100), Denom: bondDenom})
 
@@ -276,7 +272,7 @@ func (env *TestEnv) setupValidator(bondStatus stakingtypes.BondStatus) sdk.ValAd
 	env.App.BankKeeper.SendCoinsFromModuleToModule(env.Ctx, stakingtypes.NotBondedPoolName, stakingtypes.BondedPoolName, sdk.NewCoins(stakingCoin))
 
 	val, found := env.App.StakingKeeper.GetValidator(env.Ctx, valAddr)
-	requierTrue("validator found", found)
+	requireTrue("validator found", found)
 
 	val = val.UpdateStatus(bondStatus)
 	env.App.StakingKeeper.SetValidator(env.Ctx, val)
@@ -315,7 +311,7 @@ func requireNoNil(name string, nilable any) {
 	}
 }
 
-func requierTrue(name string, b bool) {
+func requireTrue(name string, b bool) {
 	if !b {
 		panic(fmt.Sprintf("%s must be true", name))
 	}

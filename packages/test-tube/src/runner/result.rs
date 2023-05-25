@@ -48,8 +48,6 @@ where
                         .into_iter()
                         .map(|a| -> Result<Attribute, Utf8Error> {
                             Ok(Attribute {
-                                // key: std::str::from_utf8(a.key.as_slice())?.to_string(),
-                                // value: std::str::from_utf8(a.value.as_slice())?.to_string(),
                                 key: a.key,
                                 value: a.value,
                             })

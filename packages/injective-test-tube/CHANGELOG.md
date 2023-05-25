@@ -14,6 +14,9 @@ straightforward as possible.
 
 ### Changed
 
+- Block time altered to 1 second
+- General tidy of code
+
 ### Fixed
 
 ## [1.1.0] - 2023-05-25
