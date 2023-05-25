@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-Here we write upgrading notes for brands. It's a team effort to make them as
-straightforward as possible.
+### Added
+
+### Changed
+
+- Block time altered to 1 second
+- General tidy of code
+- Updated dependency `injective-std v0.1.1`
+
+### Fixed
+
+## [1.1.1] - 2023-05-25
 
 ### Added
 
@@ -16,6 +25,7 @@ straightforward as possible.
 
 - Block time altered to 1 second
 - General tidy of code
+- Updated dependency `injective-std v0.1.1`
 
 ### Fixed
 
