@@ -82,6 +82,22 @@ where
     }
 
     fn_query! {
+        pub query_positions ["/injective.exchange.v1beta1.Query/Positions"]: v1beta1::QueryPositionsRequest => v1beta1::QueryPositionsResponse
+    }
+
+    fn_query! {
+        pub query_subaccount_positions ["/injective.exchange.v1beta1.Query/SubaccountPositions"]: v1beta1::QuerySubaccountPositionsRequest => v1beta1::QuerySubaccountPositionsResponse
+    }
+
+    fn_query! {
+        pub query_subaccount_position_in_market ["/injective.exchange.v1beta1.Query/SubaccountPositionInMarket"]: v1beta1::QuerySubaccountPositionInMarketRequest => v1beta1::QuerySubaccountPositionInMarketResponse
+    }
+
+    fn_query! {
+        pub query_subaccount_effective_position_in_market ["/injective.exchange.v1beta1.Query/SubaccountEffectivePositionInMarket"]: v1beta1::QuerySubaccountEffectivePositionInMarketRequest => v1beta1::QuerySubaccountEffectivePositionInMarketResponse
+    }
+
+    fn_query! {
         pub query_exchange_module_state ["/injective.exchange.v1beta1.Query/ModuleStateRequest"]: v1beta1::QueryModuleStateRequest => v1beta1::QueryModuleStateResponse
     }
 }
@@ -90,11 +106,7 @@ where
 mod tests {
     use cosmwasm_std::{Addr, Coin};
     use injective_cosmwasm::get_default_subaccount_id_for_checked_address;
-    use injective_std::types::injective::exchange::v1beta1::{
-        MarketStatus, MsgCreateSpotLimitOrder, MsgInstantSpotMarketLaunch, OrderInfo,
-        QuerySpotMarketsRequest, QuerySpotMarketsResponse, QuerySpotMidPriceAndTobRequest,
-        QuerySpotMidPriceAndTobResponse, SpotMarket, SpotOrder,
-    };
+    use injective_std::types::injective::exchange::v1beta1;
 
     use crate::{Account, Exchange, InjectiveTestApp};
     use test_tube_inj::Module;
@@ -118,7 +130,7 @@ mod tests {
 
         exchange
             .instant_spot_market_launch(
-                MsgInstantSpotMarketLaunch {
+                v1beta1::MsgInstantSpotMarketLaunch {
                     sender: signer.address(),
                     ticker: "INJ/USDT".to_owned(),
                     base_denom: "inj".to_owned(),
@@ -132,7 +144,7 @@ mod tests {
 
         exchange
             .instant_spot_market_launch(
-                MsgInstantSpotMarketLaunch {
+                v1beta1::MsgInstantSpotMarketLaunch {
                     sender: signer.address(),
                     ticker: "INJ/USDT".to_owned(),
                     base_denom: "inj".to_owned(),
@@ -147,13 +159,13 @@ mod tests {
         app.increase_time(1u64);
 
         let spot_markets = exchange
-            .query_spot_markets(&QuerySpotMarketsRequest {
+            .query_spot_markets(&v1beta1::QuerySpotMarketsRequest {
                 status: "Active".to_owned(),
             })
             .unwrap();
 
-        let expected_response = QuerySpotMarketsResponse {
-            markets: vec![SpotMarket {
+        let expected_response = v1beta1::QuerySpotMarketsResponse {
+            markets: vec![v1beta1::SpotMarket {
                 ticker: "INJ/USDT".to_string(),
                 base_denom: "inj".to_string(),
                 quote_denom: "usdt".to_string(),
@@ -162,7 +174,7 @@ mod tests {
                 relayer_fee_share_rate: "400000000000000000".to_string(),
                 market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
                     .to_string(),
-                status: MarketStatus::Active.into(),
+                status: v1beta1::MarketStatus::Active.into(),
                 min_price_tick_size: "10000".to_string(),
                 min_quantity_tick_size: "100000".to_string(),
             }],
@@ -170,13 +182,13 @@ mod tests {
         assert_eq!(spot_markets, expected_response);
 
         let spot_mid_price_and_tob = exchange
-            .query_spot_mid_price_and_tob(&QuerySpotMidPriceAndTobRequest {
+            .query_spot_mid_price_and_tob(&v1beta1::QuerySpotMidPriceAndTobRequest {
                 market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
                     .to_string(),
             })
             .unwrap();
 
-        let expected_response = QuerySpotMidPriceAndTobResponse {
+        let expected_response = v1beta1::QuerySpotMidPriceAndTobResponse {
             mid_price: "".to_string(),
             best_buy_price: "".to_string(),
             best_sell_price: "".to_string(),
@@ -185,13 +197,13 @@ mod tests {
 
         exchange
             .create_spot_limit_order(
-                MsgCreateSpotLimitOrder {
+                v1beta1::MsgCreateSpotLimitOrder {
                     sender: signer.address(),
-                    order: Some(SpotOrder {
+                    order: Some(v1beta1::SpotOrder {
                         market_id:
                             "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
                                 .to_string(),
-                        order_info: Some(OrderInfo {
+                        order_info: Some(v1beta1::OrderInfo {
                             subaccount_id: get_default_subaccount_id_for_checked_address(
                                 &Addr::unchecked(signer.address()),
                             )
@@ -211,13 +223,13 @@ mod tests {
 
         exchange
             .create_spot_limit_order(
-                MsgCreateSpotLimitOrder {
+                v1beta1::MsgCreateSpotLimitOrder {
                     sender: trader.address(),
-                    order: Some(SpotOrder {
+                    order: Some(v1beta1::SpotOrder {
                         market_id:
                             "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
                                 .to_string(),
-                        order_info: Some(OrderInfo {
+                        order_info: Some(v1beta1::OrderInfo {
                             subaccount_id: get_default_subaccount_id_for_checked_address(
                                 &Addr::unchecked(trader.address()),
                             )
@@ -236,17 +248,24 @@ mod tests {
             .unwrap();
 
         let spot_mid_price_and_tob = exchange
-            .query_spot_mid_price_and_tob(&QuerySpotMidPriceAndTobRequest {
+            .query_spot_mid_price_and_tob(&v1beta1::QuerySpotMidPriceAndTobRequest {
                 market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
                     .to_string(),
             })
             .unwrap();
 
-        let expected_response = QuerySpotMidPriceAndTobResponse {
+        let expected_response = v1beta1::QuerySpotMidPriceAndTobResponse {
             mid_price: "1500000000000000000".to_string(),
             best_buy_price: "1000000000000000000".to_string(),
             best_sell_price: "2000000000000000000".to_string(),
         };
         assert_eq!(spot_mid_price_and_tob, expected_response);
+
+        let positions = exchange
+            .query_positions(&v1beta1::QueryPositionsRequest {})
+            .unwrap();
+
+        let expected_response = v1beta1::QueryPositionsResponse { state: vec![] };
+        assert_eq!(positions, expected_response);
     }
 }

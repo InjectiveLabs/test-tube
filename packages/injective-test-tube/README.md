@@ -2,6 +2,8 @@
 
 CosmWasm x Injective integration testing library that, unlike `cw-multi-test`, it allows you to test your cosmwasm contract against real chain's logic instead of mocks.
 
+As the project depends on currently private repos, no crate is published rather please refer to [`CHANGELOG`](./CHANGELOG.md) for features and update information.
+
 ## Table of Contents
 
 - [Getting Started](#getting-started)
@@ -17,7 +19,7 @@ Here is how to setup the test:
 
 ```rust
 use cosmwasm_std::Coin;
-use injective_test_tube_inj::InjectiveTestApp;
+use injective_test_tube::InjectiveTestApp;
 
 // create new injective appchain instance.
 let app = InjectiveTestApp::new();
@@ -45,7 +47,7 @@ If you want to create just one account, you can use `init_account` instead.
 
 ```rust
 use cosmwasm_std::Coin;
-use injective_test_tube_inj::InjectiveTestApp;
+use injective_test_tube::InjectiveTestApp;
 
 let app = InjectiveTestApp::new();
 
@@ -66,7 +68,7 @@ Then we can start interacting with our contract. Let's do just that.
 ```rust
 use cosmwasm_std::Coin;
 use cw1_whitelist::msg::{InstantiateMsg}; // for instantiating cw1_whitelist contract
-use injective_test_tube_inj::{Account, Module, InjectiveTestApp, Wasm};
+use injective_test_tube::{Account, Module, InjectiveTestApp, Wasm};
 
 let app = InjectiveTestApp::new();
 let accs = app
@@ -102,7 +104,7 @@ You might want to run `cargo wasm` and find your wasm file in `target/wasm32-unk
 ```rust
 use cosmwasm_std::Coin;
 use cw1_whitelist::msg::{InstantiateMsg, QueryMsg, AdminListResponse};
-use injective_test_tube_inj::{Account, Module, InjectiveTestApp, Wasm};
+use injective_test_tube::{Account, Module, InjectiveTestApp, Wasm};
 
 let app = InjectiveTestApp::new();
 let accs = app
@@ -161,7 +163,7 @@ Now let's execute the contract and verify that the contract's state is updated p
 ```rust
 use cosmwasm_std::Coin;
 use cw1_whitelist::msg::{InstantiateMsg, QueryMsg, ExecuteMsg, AdminListResponse};
-use injective_test_tube_inj::{Account, Module, InjectiveTestApp, Wasm};
+use injective_test_tube::{Account, Module, InjectiveTestApp, Wasm};
 
 let app = InjectiveTestApp::new();
 let accs = app
@@ -250,7 +252,7 @@ use injective_std::types::injective::exchange::v1beta1::{
     MarketStatus, MsgInstantSpotMarketLaunch, 
     QuerySpotMarketsRequest, QuerySpotMarketsResponse, SpotMarket,
 };
-use injective_test_tube_inj::{Account, Exchange, InjectiveTestApp};
+use injective_test_tube::{Account, Exchange, InjectiveTestApp};
 use test_tube_inj::Module;
 
 let app = InjectiveTestApp::new();
