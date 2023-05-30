@@ -11,9 +11,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-- Block time altered to 1 second
-- General tidy of code
-- Updated dependency `injective-std v0.1.1`
+### Fixed
+
+## [1.1.2] - 2023-05-30
+
+### Added
+
+### Changed
+
+- Updated dependency `injective-core@ca0d72904f5dc13c05f13d9407d2e22ba55739b4`
+    - This adds support for WasmX module queries
+- Updated dependency `injective-std v0.1.2`
 
 ### Fixed
 

@@ -303,6 +303,7 @@ app.increase_time(1u64);
 let spot_markets = exchange
     .query_spot_markets(&QuerySpotMarketsRequest {
         status: "Active".to_owned(),
+        market_ids: vec![],
     })
     .unwrap();
 
