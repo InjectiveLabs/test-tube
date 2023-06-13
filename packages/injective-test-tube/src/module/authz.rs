@@ -1,6 +1,7 @@
 use injective_std::types::cosmos::authz::v1beta1::{
     MsgExec, MsgExecResponse, MsgGrant, MsgGrantResponse, QueryGranteeGrantsRequest,
     QueryGranteeGrantsResponse, QueryGranterGrantsRequest, QueryGranterGrantsResponse,
+    QueryGrantsRequest, QueryGrantsResponse,
 };
 use test_tube_inj::{fn_execute, fn_query};
 
@@ -35,6 +36,10 @@ where
 
     fn_query! {
         pub query_granter_grants ["/cosmos.authz.v1beta1.Query/GranterGrants"]: QueryGranterGrantsRequest => QueryGranterGrantsResponse
+    }
+
+    fn_query! {
+        pub query_grants ["/cosmos.authz.v1beta1.Query/Grants"]: QueryGrantsRequest => QueryGrantsResponse
     }
 }
 
@@ -90,7 +95,6 @@ mod tests {
                 MsgGrant {
                     granter: signer.address(),
                     grantee: receiver.address(),
-                    // grant: None,
                     grant: Some(Grant {
                         authorization: Some(Any {
                             type_url: "/cosmos.bank.v1beta1.SendAuthorization".to_string(),
