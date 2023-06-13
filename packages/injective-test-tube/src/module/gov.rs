@@ -1,4 +1,4 @@
-use injective_std::types::cosmos::gov::v1beta1::{
+use injective_std::types::cosmos::gov::v1::{
     MsgSubmitProposal, MsgSubmitProposalResponse, MsgVote, MsgVoteResponse, QueryProposalRequest,
     QueryProposalResponse,
 };

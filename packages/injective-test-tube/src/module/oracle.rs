@@ -19,8 +19,8 @@ impl<'a, R: Runner<'a>> Module<'a, R> for Oracle<'a, R> {
 }
 
 impl<'a, R> Oracle<'a, R>
-    where
-        R: Runner<'a>,
+where
+    R: Runner<'a>,
 {
     fn_execute! {
         pub relay_price_feed: MsgRelayPriceFeedPrice => MsgRelayPriceFeedPriceResponse
@@ -49,18 +49,20 @@ mod tests {
     use cosmrs::proto::cosmos::params::v1beta1::ParamChange;
     use cosmwasm_std::Coin;
     use injective_std::types::cosmos::gov;
-    use injective_std::types::injective::oracle::v1beta1::{MsgRelayPythPrices, PriceAttestation, PythPriceState, QueryPythPriceStatesResponse};
+    use injective_std::types::injective::oracle::v1beta1::{
+        MsgRelayPythPrices, Params, PriceAttestation, PythPriceState, QueryPythPriceStatesResponse,
+    };
     use injective_std::{
         shim::Any,
         types::{
             cosmos::{
                 bank::v1beta1::MsgSend,
                 base::v1beta1::Coin as TubeCoin,
-                gov::v1beta1::{MsgSubmitProposal, MsgVote},
+                gov::v1::{MsgSubmitProposal, MsgVote},
             },
             injective::oracle,
             injective::oracle::v1beta1::{
-                GrantPriceFeederPrivilegeProposal, MsgRelayPriceFeedPrice,
+                GrantPriceFeederPrivilegeProposal, MsgRelayPriceFeedPrice, MsgUpdateParams,
             },
         },
     };
@@ -97,7 +99,7 @@ mod tests {
             },
             &mut buf,
         )
-            .unwrap();
+        .unwrap();
 
         let validator = app
             .get_first_validator_signing_account("inj".to_string(), 1.2f64)
@@ -115,21 +117,24 @@ mod tests {
             },
             &signer,
         )
-            .unwrap();
+        .unwrap();
 
         let res = gov
             .submit_proposal(
                 MsgSubmitProposal {
-                    content: Some(Any {
+                    messages: vec![Any {
                         type_url: "/injective.oracle.v1beta1.GrantPriceFeederPrivilegeProposal"
                             .to_string(),
                         value: buf,
-                    }),
+                    }],
                     initial_deposit: vec![TubeCoin {
                         amount: "100000000000000000000".to_string(),
                         denom: "inj".to_string(),
                     }],
                     proposer: validator.address().to_string(),
+                    metadata: "".to_string(),
+                    title: "".to_string(),
+                    summary: "".to_string(),
                 },
                 &validator,
             )
@@ -149,10 +154,11 @@ mod tests {
                 proposal_id: u64::from_str(&proposal_id).unwrap(),
                 voter: validator.address().to_string(),
                 option: 1i32,
+                metadata: "".to_string(),
             },
             &validator,
         )
-            .unwrap();
+        .unwrap();
 
         // NOTE: increase the block time in order to move past the voting period
         app.increase_time(10u64);
@@ -215,39 +221,57 @@ mod tests {
             },
             &signer,
         )
-            .unwrap();
+        .unwrap();
 
         let pyth_contract = app
             .init_account(&[Coin::new(100_000_000_000_000_000_000_000u128, "inj")])
             .unwrap();
 
+        let b = vec![0x3];
+        let s = String::from_utf8(b).unwrap();
+        // let mut buf = vec![];
+        // params::v1beta1::ParameterChangeProposal::encode(
+        //     &params::v1beta1::ParameterChangeProposal {
+        //         title: "set pyth contract address".to_string(),
+        //         description: "set pyth contract address".to_string(),
+        //         changes: vec![ParamChange {
+        //             subspace: "oracle".to_string(),
+        //             key: s,
+        //             value: format!("\"{}\"", pyth_contract.address()).to_string(),
+        //         }],
+        //     },
+        //     &mut buf,
+        // )
+        // .unwrap();
+        print!("pyth contract address: {}", validator.address());
         let mut buf = vec![];
-        params::v1beta1::ParameterChangeProposal::encode(
-            &params::v1beta1::ParameterChangeProposal {
-                title: "set pyth contract address".to_string(),
-                description: "set pyth contract address".to_string(),
-                changes: vec![ParamChange {
-                    subspace: "oracle".to_string(),
-                    key: "PythContract".to_string(),
-                    value: format!("\"{}\"", pyth_contract.address()).to_string(),
-                }],
+        MsgUpdateParams::encode(
+            &MsgUpdateParams {
+                // authority: validator.address().to_string(),
+                authority: "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt".to_string(),
+                params: Some(Params {
+                    pyth_contract: pyth_contract.address().to_string(),
+                }),
             },
             &mut buf,
         )
-            .unwrap();
+        .unwrap();
 
         let res = gov
             .submit_proposal(
                 MsgSubmitProposal {
-                    content: Some(Any {
-                        type_url: "/cosmos.params.v1beta1.ParameterChangeProposal".to_string(),
+                    messages: vec![Any {
+                        type_url: "/injective.oracle.v1beta1.MsgUpdateParams".to_string(),
                         value: buf,
-                    }),
+                    }],
                     initial_deposit: vec![TubeCoin {
                         amount: "100000000000000000000".to_string(),
                         denom: "inj".to_string(),
                     }],
                     proposer: validator.address().to_string(),
+                    metadata: "".to_string(),
+                    title: "Update params".to_string(),
+                    summary: "Basically updating the params".to_string(),
                 },
                 &validator,
             )
@@ -267,24 +291,25 @@ mod tests {
                 proposal_id: u64::from_str(&proposal_id).unwrap(),
                 voter: validator.address().to_string(),
                 option: 1i32,
+                metadata: "".to_string(),
             },
             &validator,
         )
-            .unwrap();
+        .unwrap();
 
         // NOTE: increase the block time in order to move past the voting period
         app.increase_time(11u64);
 
-        let proposal_result = gov.query_proposal(
-            &gov::v1beta1::QueryProposalRequest {
+        let proposal_result = gov
+            .query_proposal(&gov::v1::QueryProposalRequest {
                 proposal_id: u64::from_str(&proposal_id).unwrap(),
-            }
-        ).unwrap();
+            })
+            .unwrap();
         println!("{:?}", proposal_result);
 
-        let result = oracle.query_module_state(
-            &oracle::v1beta1::QueryModuleStateRequest {}
-        ).unwrap();
+        let result = oracle
+            .query_module_state(&oracle::v1beta1::QueryModuleStateRequest {})
+            .unwrap();
         println!("{:?}", result);
 
         let inj_price_id = "0x7a5bc1d2b56ad029048cd63964b3ad2776eadf812edc1a43a31406cb54bff592";
@@ -318,7 +343,10 @@ mod tests {
             .relay_pyth_prices(
                 MsgRelayPythPrices {
                     sender: pyth_contract.address().to_string(),
-                    price_attestations: vec![inj_price_attestation.clone(), usdt_price_attestation.clone()],
+                    price_attestations: vec![
+                        inj_price_attestation.clone(),
+                        usdt_price_attestation.clone(),
+                    ],
                 },
                 &pyth_contract,
             )
@@ -328,7 +356,9 @@ mod tests {
             .query_pyth_price(&oracle::v1beta1::QueryPythPriceRequest {
                 price_id: inj_price_id.to_string(),
             })
-            .unwrap().price_state.unwrap();
+            .unwrap()
+            .price_state
+            .unwrap();
 
         assert!(
             inj_price_state.price_state.is_some(),
@@ -347,15 +377,18 @@ mod tests {
             "inj cumulative price should be greater than 0"
         );
         assert_eq!(
-            inj_price_state.conf, inj_price_attestation.conf.to_string(),
+            inj_price_state.conf,
+            inj_price_attestation.conf.to_string(),
             "inj conf should be equal to the price attestation"
         );
         assert_eq!(
-            inj_price_state.ema_price, inj_price_attestation.ema_price.to_string(),
+            inj_price_state.ema_price,
+            inj_price_attestation.ema_price.to_string(),
             "inj ema_price should be equal to the price attestation"
         );
         assert_eq!(
-            inj_price_state.ema_conf, inj_price_attestation.ema_conf.to_string(),
+            inj_price_state.ema_conf,
+            inj_price_attestation.ema_conf.to_string(),
             "inj ema_conf should be equal to the price attestation"
         );
         assert_eq!(
@@ -367,7 +400,9 @@ mod tests {
             .query_pyth_price(&oracle::v1beta1::QueryPythPriceRequest {
                 price_id: usdt_price_id.to_string(),
             })
-            .unwrap().price_state.unwrap();
+            .unwrap()
+            .price_state
+            .unwrap();
 
         assert!(
             usdt_price_state.price_state.is_some(),
@@ -386,15 +421,18 @@ mod tests {
             "usdt cumulative price should be greater than 0"
         );
         assert_eq!(
-            usdt_price_state.conf, usdt_price_attestation.conf.to_string(),
+            usdt_price_state.conf,
+            usdt_price_attestation.conf.to_string(),
             "usdt conf should be equal to the price attestation"
         );
         assert_eq!(
-            usdt_price_state.ema_price, usdt_price_attestation.ema_price.to_string(),
+            usdt_price_state.ema_price,
+            usdt_price_attestation.ema_price.to_string(),
             "usdt ema_price should be equal to the price attestation"
         );
         assert_eq!(
-            usdt_price_state.ema_conf, usdt_price_attestation.ema_conf.to_string(),
+            usdt_price_state.ema_conf,
+            usdt_price_attestation.ema_conf.to_string(),
             "usdt ema_conf should be equal to the price attestation"
         );
         assert_eq!(
