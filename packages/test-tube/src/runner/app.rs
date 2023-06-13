@@ -391,7 +391,6 @@ impl<'a> Runner<'a> for BaseApp {
         unsafe {
             let res = Query(self.id, path, base64_query_msg_bytes);
             let res = RawResult::from_non_null_ptr(res).into_result()?;
-            println!("res: {:?}", res);
             R::decode(res.as_slice())
                 .map_err(DecodeError::ProtoDecodeError)
                 .map_err(RunnerError::DecodeError)
