@@ -318,7 +318,7 @@ mod tests {
         let unix = now.duration_since(UNIX_EPOCH).unwrap();
 
         let inj_price_attestation = PriceAttestation {
-            price_id: "inj_price_id".to_string(),
+            price_id: inj_price_id.to_string(),
             price: 145600,
             conf: 500,
             expo: -5,
@@ -329,7 +329,7 @@ mod tests {
         };
 
         let usdt_price_attestation = PriceAttestation {
-            price_id: "usdt_price_id".to_string(),
+            price_id: usdt_price_id.to_string(),
             price: 1000,
             conf: 500,
             expo: -3,
