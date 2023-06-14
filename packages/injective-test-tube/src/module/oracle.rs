@@ -45,12 +45,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use cosmrs::proto::cosmos::params;
-    use cosmrs::proto::cosmos::params::v1beta1::ParamChange;
     use cosmwasm_std::Coin;
-    use injective_std::types::cosmos::gov;
     use injective_std::types::injective::oracle::v1beta1::{
-        MsgRelayPythPrices, Params, PriceAttestation, PythPriceState, QueryPythPriceStatesResponse,
+        MsgRelayPythPrices, Params, PriceAttestation,
     };
     use injective_std::{
         shim::Any,
@@ -68,7 +65,6 @@ mod tests {
     };
     use prost::Message;
     use std::str::FromStr;
-    use std::time;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use crate::{Account, Bank, Gov, InjectiveTestApp, Module, Oracle};
@@ -227,35 +223,18 @@ mod tests {
             .init_account(&[Coin::new(100_000_000_000_000_000_000_000u128, "inj")])
             .unwrap();
 
-        let b = vec![0x3];
-        let s = String::from_utf8(b).unwrap();
-        // let mut buf = vec![];
-        // params::v1beta1::ParameterChangeProposal::encode(
-        //     &params::v1beta1::ParameterChangeProposal {
-        //         title: "set pyth contract address".to_string(),
-        //         description: "set pyth contract address".to_string(),
-        //         changes: vec![ParamChange {
-        //             subspace: "oracle".to_string(),
-        //             key: s,
-        //             value: format!("\"{}\"", pyth_contract.address()).to_string(),
-        //         }],
-        //     },
-        //     &mut buf,
-        // )
-        // .unwrap();
-        print!("pyth contract address: {}", validator.address());
+        let governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
+
         let mut buf = vec![];
         MsgUpdateParams::encode(
             &MsgUpdateParams {
-                // authority: validator.address().to_string(),
-                authority: "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt".to_string(),
+                authority: governance_module_address.to_string(),
                 params: Some(Params {
                     pyth_contract: pyth_contract.address().to_string(),
                 }),
             },
             &mut buf,
-        )
-        .unwrap();
+        ).unwrap();
 
         let res = gov
             .submit_proposal(
@@ -300,18 +279,6 @@ mod tests {
         // NOTE: increase the block time in order to move past the voting period
         app.increase_time(11u64);
 
-        let proposal_result = gov
-            .query_proposal(&gov::v1::QueryProposalRequest {
-                proposal_id: u64::from_str(&proposal_id).unwrap(),
-            })
-            .unwrap();
-        println!("{:?}", proposal_result);
-
-        let result = oracle
-            .query_module_state(&oracle::v1beta1::QueryModuleStateRequest {})
-            .unwrap();
-        println!("{:?}", result);
-
         let inj_price_id = "0x7a5bc1d2b56ad029048cd63964b3ad2776eadf812edc1a43a31406cb54bff592";
         let usdt_price_id = "0x1fc18861232290221461220bd4e2acd1dcdfbc89c84092c93c18bdc7756c1588";
         let now = SystemTime::now();
@@ -319,23 +286,23 @@ mod tests {
 
         let inj_price_attestation = PriceAttestation {
             price_id: inj_price_id.to_string(),
-            price: 145600,
+            price: 1456,
             conf: 500,
-            expo: -5,
-            ema_price: 167251,
+            expo: -12,
+            ema_price: 1672,
             ema_conf: 2000,
-            ema_expo: -5,
+            ema_expo: -12,
             publish_time: unix.as_millis() as i64,
         };
 
         let usdt_price_attestation = PriceAttestation {
             price_id: usdt_price_id.to_string(),
-            price: 1000,
+            price: 1,
             conf: 500,
-            expo: -3,
-            ema_price: 1021,
+            expo: -12,
+            ema_price: 121,
             ema_conf: 2000,
-            ema_expo: -3,
+            ema_expo: -12,
             publish_time: unix.as_millis() as i64,
         };
 
@@ -368,27 +335,27 @@ mod tests {
         let inj_price = inj_price_state.price_state.unwrap();
         assert_eq!(
             inj_price.price,
-            inj_price_attestation.price.to_string(),
+            1456000000.to_string(),
             "inj price should be equal to the price attestation"
         );
-        let inj_cumulative_price: i64 = inj_price.cumulative_price.parse().unwrap();
-        assert!(
-            inj_cumulative_price > 0,
-            "inj cumulative price should be greater than 0"
+        assert_eq!(
+            inj_price.cumulative_price,
+            "0",
+            "inj cumulative price should equal to 0"
         );
         assert_eq!(
             inj_price_state.conf,
-            inj_price_attestation.conf.to_string(),
+            500000000.to_string(),
             "inj conf should be equal to the price attestation"
         );
         assert_eq!(
             inj_price_state.ema_price,
-            inj_price_attestation.ema_price.to_string(),
+            1672000000.to_string(),
             "inj ema_price should be equal to the price attestation"
         );
         assert_eq!(
             inj_price_state.ema_conf,
-            inj_price_attestation.ema_conf.to_string(),
+            2000000000.to_string(),
             "inj ema_conf should be equal to the price attestation"
         );
         assert_eq!(
@@ -412,27 +379,27 @@ mod tests {
         let usdt_price = usdt_price_state.price_state.unwrap();
         assert_eq!(
             usdt_price.price,
-            usdt_price_attestation.price.to_string(),
+            1000000.to_string(),
             "usdt price should be equal to the price attestation"
         );
-        let usdt_cumulative_price: i64 = usdt_price.cumulative_price.parse().unwrap();
-        assert!(
-            usdt_cumulative_price > 0,
-            "usdt cumulative price should be greater than 0"
+        assert_eq!(
+            usdt_price.cumulative_price,
+            "0",
+            "usdt cumulative price should be equal to 0"
         );
         assert_eq!(
             usdt_price_state.conf,
-            usdt_price_attestation.conf.to_string(),
+            500000000.to_string(),
             "usdt conf should be equal to the price attestation"
         );
         assert_eq!(
             usdt_price_state.ema_price,
-            usdt_price_attestation.ema_price.to_string(),
+            121000000.to_string(),
             "usdt ema_price should be equal to the price attestation"
         );
         assert_eq!(
             usdt_price_state.ema_conf,
-            usdt_price_attestation.ema_conf.to_string(),
+            2000000000.to_string(),
             "usdt ema_conf should be equal to the price attestation"
         );
         assert_eq!(
