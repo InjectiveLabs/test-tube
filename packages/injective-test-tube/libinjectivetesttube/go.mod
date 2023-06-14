@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/CosmWasm/wasmd v0.40.0
-	github.com/InjectiveLabs/injective-core v1.10.0
+	github.com/InjectiveLabs/injective-core v1.11.0
 	github.com/cometbft/cometbft v0.37.1
 	github.com/cometbft/cometbft-db v0.7.0
 	github.com/cosmos/cosmos-sdk v0.47.2
@@ -192,7 +192,7 @@ replace (
 	github.com/InjectiveLabs/injective-core => ../injective-core
 	github.com/cometbft/cometbft => github.com/InjectiveLabs/cometbft v0.37.1-inj
 	github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
-	github.com/cosmos/cosmos-sdk => github.com/InjectiveLabs/cosmos-sdk v0.47.2-inj-2
+	github.com/cosmos/cosmos-sdk => github.com/InjectiveLabs/cosmos-sdk v0.47.2-inj-4
 	github.com/cosmos/ibc-go/v7 => github.com/InjectiveLabs/ibc-go/v7 v7.0.1-inj
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	google.golang.org/grpc => google.golang.org/grpc v1.54.0
