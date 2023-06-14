@@ -2,6 +2,7 @@ use injective_std::types::cosmos::gov::v1::{
     MsgSubmitProposal, MsgSubmitProposalResponse, MsgVote, MsgVoteResponse, QueryProposalRequest,
     QueryProposalResponse,
 };
+use injective_std::types::cosmos::gov::v1beta1;
 use test_tube_inj::module::Module;
 use test_tube_inj::runner::Runner;
 use test_tube_inj::{fn_execute, fn_query};
@@ -22,6 +23,11 @@ where
 {
     fn_execute! {
         pub submit_proposal: MsgSubmitProposal => MsgSubmitProposalResponse
+    }
+
+    fn_execute! {
+        pub submit_proposal_v1beta1: v1beta1::MsgSubmitProposal => v1beta1::MsgSubmitProposalResponse
+
     }
 
     fn_execute! {

@@ -52,6 +52,7 @@ mod tests {
     use injective_std::{
         shim::Any,
         types::{
+            cosmos::gov,
             cosmos::{
                 bank::v1beta1::MsgSend,
                 base::v1beta1::Coin as TubeCoin,
@@ -91,7 +92,7 @@ mod tests {
                 description: "test-proposal".to_string(),
                 base: "inj".to_string(),
                 quote: "usdt".to_string(),
-                relayers: vec![signer.address().to_string()],
+                relayers: vec![signer.address()],
             },
             &mut buf,
         )
@@ -104,8 +105,8 @@ mod tests {
         // fund the validator account
         bank.send(
             MsgSend {
-                from_address: signer.address().to_string(),
-                to_address: validator.address().to_string(),
+                from_address: signer.address(),
+                to_address: validator.address(),
                 amount: vec![TubeCoin {
                     amount: "1000000000000000000000".to_string(),
                     denom: "inj".to_string(),
@@ -116,21 +117,18 @@ mod tests {
         .unwrap();
 
         let res = gov
-            .submit_proposal(
-                MsgSubmitProposal {
-                    messages: vec![Any {
+            .submit_proposal_v1beta1(
+                gov::v1beta1::MsgSubmitProposal {
+                    content: Some(Any {
                         type_url: "/injective.oracle.v1beta1.GrantPriceFeederPrivilegeProposal"
                             .to_string(),
                         value: buf,
-                    }],
+                    }),
                     initial_deposit: vec![TubeCoin {
                         amount: "100000000000000000000".to_string(),
                         denom: "inj".to_string(),
                     }],
-                    proposer: validator.address().to_string(),
-                    metadata: "".to_string(),
-                    title: "".to_string(),
-                    summary: "".to_string(),
+                    proposer: validator.address(),
                 },
                 &validator,
             )
@@ -148,7 +146,7 @@ mod tests {
         gov.vote(
             MsgVote {
                 proposal_id: u64::from_str(&proposal_id).unwrap(),
-                voter: validator.address().to_string(),
+                voter: validator.address(),
                 option: 1i32,
                 metadata: "".to_string(),
             },
@@ -164,7 +162,7 @@ mod tests {
         oracle
             .relay_price_feed(
                 MsgRelayPriceFeedPrice {
-                    sender: signer.address().to_string(),
+                    sender: signer.address(),
                     base: vec!["inj".to_string()],
                     quote: vec!["usdt".to_string()],
                     price: vec![expected_price.clone()],
@@ -208,8 +206,8 @@ mod tests {
         // fund the validator account
         bank.send(
             MsgSend {
-                from_address: signer.address().to_string(),
-                to_address: validator.address().to_string(),
+                from_address: signer.address(),
+                to_address: validator.address(),
                 amount: vec![TubeCoin {
                     amount: "1000000000000000000000".to_string(),
                     denom: "inj".to_string(),
@@ -230,11 +228,12 @@ mod tests {
             &MsgUpdateParams {
                 authority: governance_module_address.to_string(),
                 params: Some(Params {
-                    pyth_contract: pyth_contract.address().to_string(),
+                    pyth_contract: pyth_contract.address(),
                 }),
             },
             &mut buf,
-        ).unwrap();
+        )
+        .unwrap();
 
         let res = gov
             .submit_proposal(
@@ -247,7 +246,7 @@ mod tests {
                         amount: "100000000000000000000".to_string(),
                         denom: "inj".to_string(),
                     }],
-                    proposer: validator.address().to_string(),
+                    proposer: validator.address(),
                     metadata: "".to_string(),
                     title: "Update params".to_string(),
                     summary: "Basically updating the params".to_string(),
@@ -268,7 +267,7 @@ mod tests {
         gov.vote(
             MsgVote {
                 proposal_id: u64::from_str(&proposal_id).unwrap(),
-                voter: validator.address().to_string(),
+                voter: validator.address(),
                 option: 1i32,
                 metadata: "".to_string(),
             },
@@ -309,7 +308,7 @@ mod tests {
         oracle
             .relay_pyth_prices(
                 MsgRelayPythPrices {
-                    sender: pyth_contract.address().to_string(),
+                    sender: pyth_contract.address(),
                     price_attestations: vec![
                         inj_price_attestation.clone(),
                         usdt_price_attestation.clone(),
@@ -339,8 +338,7 @@ mod tests {
             "inj price should be equal to the price attestation"
         );
         assert_eq!(
-            inj_price.cumulative_price,
-            "0",
+            inj_price.cumulative_price, "0",
             "inj cumulative price should equal to 0"
         );
         assert_eq!(
@@ -383,8 +381,7 @@ mod tests {
             "usdt price should be equal to the price attestation"
         );
         assert_eq!(
-            usdt_price.cumulative_price,
-            "0",
+            usdt_price.cumulative_price, "0",
             "usdt cumulative price should be equal to 0"
         );
         assert_eq!(
