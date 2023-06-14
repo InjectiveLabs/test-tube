@@ -12,6 +12,12 @@ Additionally, this repo contains [`test-tube-inj`](https://github.com/InjectiveL
 - Test against the actual Cosmos SDK chain's logic
 - Build testing environments for any Cosmos SDK-based chain
 
+## **HOW CAN I USE THIS?**
+
+Please checkout the documentation in the [`injective-test-tube`](./packages/injective-test-tube/README.md) package:
+
+> [**CLICK HERE**](./packages/injective-test-tube/README.md)
+
 ## Why don't just use `cw-multi-test`?
 
 You might want to just use `cw-multi-test` if your contract does not interact with chain's custom module.
