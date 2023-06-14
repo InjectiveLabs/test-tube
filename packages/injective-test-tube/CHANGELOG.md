@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.1.3] - 2023-05-30
+
+### Added
+
+### Changed
+
+- Updated dependency `injective-core@831cd2e0e8864dd93c1dc0e6d678217346284a70` 
+- Updated dependency `injective-cosmwasm v0.2.1`
+
+### Fixed
+
+### Fixed
+
 ## [1.1.2] - 2023-05-30
 
 ### Added
