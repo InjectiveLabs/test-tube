@@ -28,6 +28,7 @@ pub struct BaseApp {
     chain_id: String,
     address_prefix: String,
     default_gas_adjustment: f64,
+    is_auto_mining: bool,
 }
 
 impl BaseApp {
@@ -36,6 +37,7 @@ impl BaseApp {
         chain_id: &str,
         address_prefix: &str,
         default_gas_adjustment: f64,
+        is_auto_mining: bool,
     ) -> Self {
         let id = unsafe { InitTestEnv() };
         BaseApp {
@@ -44,6 +46,7 @@ impl BaseApp {
             chain_id: chain_id.to_string(),
             address_prefix: address_prefix.to_string(),
             default_gas_adjustment,
+            is_auto_mining,
         }
     }
 
@@ -119,6 +122,7 @@ impl BaseApp {
     pub fn get_block_height(&self) -> i64 {
         unsafe { GetBlockHeight(self.id) }
     }
+
     /// Initialize account with initial balance of any coins.
     /// This function mints new coins and send to newly created account
     pub fn init_account(&self, coins: &[Coin]) -> RunnerResult<SigningAccount> {
@@ -156,7 +160,8 @@ impl BaseApp {
             },
         ))
     }
-    /// Convinience function to create multiple accounts with the same
+
+    /// Convenience function to create multiple accounts with the same
     /// Initial coins balance
     pub fn init_accounts(&self, coins: &[Coin], count: u64) -> RunnerResult<Vec<SigningAccount>> {
         (0..count).map(|_| self.init_account(coins)).collect()
@@ -259,8 +264,18 @@ impl BaseApp {
         }
     }
 
+    /// Run begin blocker for the current block
+    unsafe fn run_begin_block(&self) {
+        unsafe { BeginBlock(self.id) };
+    }
+
+    /// Run end blocker for the current block
+    unsafe fn run_end_block(&self) {
+        unsafe { EndBlock(self.id) };
+    }
+
     /// Ensure that all execution that happens in `execution` happens in a block
-    /// and end block properly, no matter it suceeds or fails.
+    /// and end block properly, no matter it succeeds or fails.
     unsafe fn run_block<T, E>(&self, execution: impl Fn() -> Result<T, E>) -> Result<T, E> {
         unsafe { BeginBlock(self.id) };
         match execution() {
@@ -308,9 +323,22 @@ impl BaseApp {
             Ok(pset)
         }
     }
+
+    /// Sets the flag to auto mine transactions
+    pub fn set_auto_mining(&mut self, is_auto_mining: bool) {
+        self.is_auto_mining = is_auto_mining;
+    }
 }
 
 impl<'a> Runner<'a> for BaseApp {
+    unsafe fn run_begin_block(&self) {
+        self.run_begin_block()
+    }
+
+    unsafe fn run_end_block(&self) {
+        self.run_end_block()
+    }
+
     fn execute_multiple<M, R>(
         &self,
         msgs: &[(M, &str)],
@@ -344,34 +372,38 @@ impl<'a> Runner<'a> for BaseApp {
     where
         R: ::prost::Message + Default,
     {
-        unsafe {
-            self.run_block(|| {
-                let fee = match &signer.fee_setting() {
-                    FeeSetting::Auto { .. } => self.estimate_fee(msgs.clone(), signer)?,
-                    FeeSetting::Custom { amount, gas_limit } => Fee::from_amount_and_gas(
-                        cosmrs::Coin {
-                            denom: amount.denom.parse().unwrap(),
-                            amount: amount.amount.to_string().parse().unwrap(),
-                        },
-                        *gas_limit,
-                    ),
-                };
+        let execution = || {
+            let fee = match &signer.fee_setting() {
+                FeeSetting::Auto { .. } => self.estimate_fee(msgs.clone(), signer)?,
+                FeeSetting::Custom { amount, gas_limit } => Fee::from_amount_and_gas(
+                    cosmrs::Coin {
+                        denom: amount.denom.parse().unwrap(),
+                        amount: amount.amount.to_string().parse().unwrap(),
+                    },
+                    *gas_limit,
+                ),
+            };
 
-                let tx = self.create_signed_tx(msgs.clone(), signer, fee)?;
-                let mut buf = Vec::new();
-                RequestDeliverTx::encode(&RequestDeliverTx { tx: tx.into() }, &mut buf)
-                    .map_err(EncodeError::ProtoEncodeError)?;
+            let tx = self.create_signed_tx(msgs.clone(), signer, fee)?;
+            let mut buf = Vec::new();
+            RequestDeliverTx::encode(&RequestDeliverTx { tx: tx.into() }, &mut buf)
+                .map_err(EncodeError::ProtoEncodeError)?;
 
-                let base64_req = base64::encode(buf);
-                redefine_as_go_string!(base64_req);
+            let base64_req = base64::encode(buf);
+            redefine_as_go_string!(base64_req);
 
-                let res = Execute(self.id, base64_req);
-                let res = RawResult::from_non_null_ptr(res).into_result()?;
+            let res = unsafe { Execute(self.id, base64_req) };
+            let res = unsafe { RawResult::from_non_null_ptr(res).into_result() }?;
 
-                ResponseDeliverTx::decode(res.as_slice())
-                    .unwrap()
-                    .try_into()
-            })
+            ResponseDeliverTx::decode(res.as_slice())
+                .unwrap()
+                .try_into()
+        };
+
+        if self.is_auto_mining {
+            unsafe { self.run_block(execution) }
+        } else {
+            execution()
         }
     }
 

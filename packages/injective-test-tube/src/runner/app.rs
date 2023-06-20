@@ -13,6 +13,7 @@ const FEE_DENOM: &str = "inj";
 const INJ_ADDRESS_PREFIX: &str = "inj";
 const CHAIN_ID: &str = "injective-777";
 const DEFAULT_GAS_ADJUSTMENT: f64 = 1.2;
+const DEFAULT_IS_AUTO_MINING: bool = true;
 
 #[derive(Debug, PartialEq)]
 pub struct InjectiveTestApp {
@@ -33,6 +34,7 @@ impl InjectiveTestApp {
                 CHAIN_ID,
                 INJ_ADDRESS_PREFIX,
                 DEFAULT_GAS_ADJUSTMENT,
+                DEFAULT_IS_AUTO_MINING,
             ),
         }
     }
@@ -82,7 +84,8 @@ impl InjectiveTestApp {
     pub fn init_account(&self, coins: &[Coin]) -> RunnerResult<SigningAccount> {
         self.inner.init_account(coins)
     }
-    /// Convinience function to create multiple accounts with the same
+
+    /// Convenience function to create multiple accounts with the same
     /// Initial coins balance
     pub fn init_accounts(&self, coins: &[Coin], count: u64) -> RunnerResult<Vec<SigningAccount>> {
         self.inner.init_accounts(coins, count)
@@ -112,6 +115,11 @@ impl InjectiveTestApp {
         type_url: &str,
     ) -> RunnerResult<P> {
         self.inner.get_param_set(subspace, type_url)
+    }
+
+    /// Sets the flag to auto mine transactions
+    pub fn set_auto_mining(&mut self, is_auto_mining: bool) {
+        self.inner.set_auto_mining(is_auto_mining);
     }
 }
 
@@ -145,6 +153,14 @@ impl<'a> Runner<'a> for InjectiveTestApp {
         R: prost::Message + Default,
     {
         self.inner.execute_multiple_raw(msgs, signer)
+    }
+
+    unsafe fn run_begin_block(&self) {
+        self.inner.run_begin_block()
+    }
+
+    unsafe fn run_end_block(&self) {
+        self.inner.run_end_block()
     }
 }
 

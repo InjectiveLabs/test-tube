@@ -10,6 +10,22 @@ pub mod error;
 pub mod result;
 
 pub trait Runner<'a> {
+    /// # Safety
+    ///
+    /// This function is unsafe because it depends on `run_begin_block`, which is also unsafe.
+    /// Make sure to run `run_end_block` before calling this function.
+    unsafe fn run_begin_block(&self) {
+        self.run_begin_block()
+    }
+
+    /// # Safety
+    ///
+    /// This function is unsafe because it depends on `run_end_block`, which is also unsafe.
+    /// Make sure to run `run_begin_block` before calling this function.
+    unsafe fn run_end_block(&self) {
+        self.run_end_block()
+    }
+
     fn execute<M, R>(
         &self,
         msg: M,
