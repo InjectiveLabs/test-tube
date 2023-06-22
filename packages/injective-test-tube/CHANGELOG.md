@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- Tests for `Authz` messages in `Authz` and `Exchange` modules
+
 ### Changed
 
 ### Fixed
