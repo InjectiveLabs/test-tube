@@ -218,6 +218,20 @@ mod tests {
             ]
         );
 
+        let response = bank
+            .query_balance(&QueryBalanceRequest {
+                address: receiver.address(),
+                denom: "usdc".to_string(),
+            })
+            .unwrap();
+        assert_eq!(
+            response.balance.unwrap(),
+            BaseCoin {
+                amount: 0u128.to_string(),
+                denom: "usdc".to_string(),
+            }
+        );
+
         let mut buf_3 = vec![];
         MsgSend::encode(
             &MsgSend {
