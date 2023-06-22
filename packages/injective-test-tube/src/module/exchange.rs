@@ -112,10 +112,7 @@ mod tests {
     use injective_cosmwasm::get_default_subaccount_id_for_checked_address;
     use injective_std::shim::Any;
     use injective_std::types::{
-        cosmos::authz::v1beta1::{
-            GenericAuthorization, Grant, GrantAuthorization, MsgExec, MsgGrant,
-            QueryGranteeGrantsRequest, QueryGranterGrantsRequest,
-        },
+        cosmos::authz::v1beta1::{GenericAuthorization, Grant, MsgExec, MsgGrant},
         injective::exchange::v1beta1,
     };
     use prost::Message;
