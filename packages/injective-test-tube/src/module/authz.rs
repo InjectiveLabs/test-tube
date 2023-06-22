@@ -49,25 +49,31 @@ mod tests {
     use injective_std::shim::Any;
     use injective_std::types::{
         cosmos::authz::v1beta1::{
-            GenericAuthorization, Grant, GrantAuthorization, MsgGrant, QueryGranteeGrantsRequest,
-            QueryGranterGrantsRequest,
+            GenericAuthorization, Grant, GrantAuthorization, MsgExec, MsgGrant,
+            QueryGranteeGrantsRequest, QueryGranterGrantsRequest,
         },
-        cosmos::bank::v1beta1::SendAuthorization,
+        cosmos::bank::v1beta1::{MsgSend, QueryBalanceRequest, SendAuthorization},
         cosmos::base::v1beta1::Coin as BaseCoin,
     };
     use prost::Message;
 
-    use crate::{Account, Authz, InjectiveTestApp};
+    use crate::{Account, Authz, Bank, InjectiveTestApp};
     use test_tube_inj::Module;
 
     #[test]
     fn authz_integration() {
         let app = InjectiveTestApp::new();
         let signer = app
-            .init_account(&[Coin::new(100_000_000_000_000_000_000u128, "inj")])
+            .init_account(&[
+                Coin::new(100_000_000_000_000_000_000u128, "inj"),
+                Coin::new(10u128, "usdc"),
+            ])
             .unwrap();
-        let receiver = app.init_account(&[Coin::new(1u128, "inj")]).unwrap();
+        let receiver = app
+            .init_account(&[Coin::new(1_000_000_000_000u128, "inj")])
+            .unwrap();
         let authz = Authz::new(&app);
+        let bank = Bank::new(&app);
 
         let response = authz
             .query_grantee_grants(&QueryGranteeGrantsRequest {
@@ -81,8 +87,8 @@ mod tests {
         SendAuthorization::encode(
             &SendAuthorization {
                 spend_limit: vec![BaseCoin {
-                    amount: 9u128.to_string(),
-                    denom: "inj".to_string(),
+                    amount: 10u128.to_string(),
+                    denom: "usdc".to_string(),
                 }],
                 allow_list: vec![],
             },
@@ -210,6 +216,61 @@ mod tests {
                     expiration: None,
                 }
             ]
+        );
+
+        let response = bank
+            .query_balance(&QueryBalanceRequest {
+                address: receiver.address(),
+                denom: "usdc".to_string(),
+            })
+            .unwrap();
+        assert_eq!(
+            response.balance.unwrap(),
+            BaseCoin {
+                amount: 0u128.to_string(),
+                denom: "usdc".to_string(),
+            }
+        );
+
+        let mut buf_3 = vec![];
+        MsgSend::encode(
+            &MsgSend {
+                from_address: signer.address(),
+                to_address: receiver.address(),
+                amount: vec![BaseCoin {
+                    amount: 10u128.to_string(),
+                    denom: "usdc".to_string(),
+                }],
+            },
+            &mut buf_3,
+        )
+        .unwrap();
+
+        authz
+            .exec(
+                MsgExec {
+                    grantee: receiver.address(),
+                    msgs: vec![Any {
+                        type_url: "/cosmos.bank.v1beta1.MsgSend".to_string(),
+                        value: buf_3.clone(),
+                    }],
+                },
+                &receiver,
+            )
+            .unwrap();
+
+        let response = bank
+            .query_balance(&QueryBalanceRequest {
+                address: receiver.address(),
+                denom: "usdc".to_string(),
+            })
+            .unwrap();
+        assert_eq!(
+            response.balance.unwrap(),
+            BaseCoin {
+                amount: 10u128.to_string(),
+                denom: "usdc".to_string(),
+            }
         );
     }
 }

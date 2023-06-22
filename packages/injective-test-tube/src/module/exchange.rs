@@ -110,9 +110,14 @@ where
 mod tests {
     use cosmwasm_std::{Addr, Coin};
     use injective_cosmwasm::get_default_subaccount_id_for_checked_address;
-    use injective_std::types::injective::exchange::v1beta1;
+    use injective_std::shim::Any;
+    use injective_std::types::{
+        cosmos::authz::v1beta1::{GenericAuthorization, Grant, MsgExec, MsgGrant},
+        injective::exchange::v1beta1,
+    };
+    use prost::Message;
 
-    use crate::{Account, Exchange, InjectiveTestApp};
+    use crate::{Account, Authz, Exchange, InjectiveTestApp};
     use test_tube_inj::Module;
 
     #[test]
@@ -130,6 +135,8 @@ mod tests {
                 Coin::new(100_000_000_000_000_000_000u128, "usdt"),
             ])
             .unwrap();
+
+        let authz = Authz::new(&app);
         let exchange = Exchange::new(&app);
 
         exchange
@@ -270,5 +277,95 @@ mod tests {
 
         let expected_response = v1beta1::QueryPositionsResponse { state: vec![] };
         assert_eq!(positions, expected_response);
+
+        // create spot limit order using grant
+        let orders_before = exchange
+            .query_trader_spot_orders(&v1beta1::QueryTraderSpotOrdersRequest {
+                market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
+                    .to_string(),
+                subaccount_id: get_default_subaccount_id_for_checked_address(&Addr::unchecked(
+                    trader.address(),
+                ))
+                .to_string(),
+            })
+            .unwrap();
+
+        let mut authorization_bytes = vec![];
+        GenericAuthorization::encode(
+            &GenericAuthorization {
+                msg: "/injective.exchange.v1beta1.MsgCreateSpotLimitOrder".to_string(),
+            },
+            &mut authorization_bytes,
+        )
+        .unwrap();
+
+        authz
+            .grant(
+                MsgGrant {
+                    granter: trader.address(),
+                    grantee: signer.address(),
+                    grant: Some(Grant {
+                        authorization: Some(Any {
+                            type_url: "/cosmos.authz.v1beta1.GenericAuthorization".to_string(),
+                            value: authorization_bytes.clone(),
+                        }),
+                        expiration: None,
+                    }),
+                },
+                &trader,
+            )
+            .unwrap();
+
+        let mut order_bytes = vec![];
+        v1beta1::MsgCreateSpotLimitOrder::encode(
+            &v1beta1::MsgCreateSpotLimitOrder {
+                sender: trader.address(),
+                order: Some(v1beta1::SpotOrder {
+                    market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
+                        .to_string(),
+                    order_info: Some(v1beta1::OrderInfo {
+                        subaccount_id: get_default_subaccount_id_for_checked_address(
+                            &Addr::unchecked(trader.address()),
+                        )
+                        .as_str()
+                        .to_string(),
+                        fee_recipient: trader.address(),
+                        price: "2200000000000000000".to_string(),
+                        quantity: "10000000000000000000".to_string(),
+                    }),
+                    order_type: 2i32,
+                    trigger_price: "".to_string(),
+                }),
+            },
+            &mut order_bytes,
+        )
+        .unwrap();
+
+        authz
+            .exec(
+                MsgExec {
+                    grantee: signer.address(),
+                    msgs: vec![Any {
+                        type_url: "/injective.exchange.v1beta1.MsgCreateSpotLimitOrder".to_string(),
+                        value: order_bytes.clone(),
+                    }],
+                },
+                &signer,
+            )
+            .unwrap();
+
+        let orders_after = exchange
+            .query_trader_spot_orders(&v1beta1::QueryTraderSpotOrdersRequest {
+                market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
+                    .to_string(),
+                subaccount_id: get_default_subaccount_id_for_checked_address(&Addr::unchecked(
+                    trader.address(),
+                ))
+                .to_string(),
+            })
+            .unwrap();
+
+        assert_eq!(orders_before.orders.len(), 1);
+        assert_eq!(orders_after.orders.len(), 2);
     }
 }
