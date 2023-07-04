@@ -1,4 +1,7 @@
 [submodule "packages/injective-test-tube/injective-core"]
 	path = packages/injective-test-tube/injective-core
-	url = https://github.com/InjectiveLabs/injective-core
-	branch = dev
+	url = https://github.com/OpenDeFiFoundation/injective-core
+	tag = v1.11.5
+[submodule "injective-core"]
+	path = injective-core
+	url = https://github.com/OpenDeFiFoundation/injective-core
