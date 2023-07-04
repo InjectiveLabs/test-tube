@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+- Updated Injective-Core to OpenDeFiFoundation
+
+### Fixed
+
+## [1.1.4] - 2023-06-04
+
+### Added
+
+- Tests for `Authz` messages in `Authz` and `Exchange` modules
+
+### Changed
+
+- Updated Injective-Core to OpenDeFiFoundation
+
 ### Fixed
 
 ## [1.1.3] - 2023-05-30
