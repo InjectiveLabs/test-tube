@@ -13,11 +13,11 @@ use crate::bindings::{
     GetParamSet, GetValidatorAddress, GetValidatorPrivateKey, IncreaseTime, InitAccount,
     InitTestEnv, Query, SetParamSet, Simulate,
 };
-use crate::redefine_as_go_string;
 use crate::runner::error::{DecodeError, EncodeError, RunnerError};
 use crate::runner::result::RawResult;
-use crate::runner::result::{RunnerExecuteResult, RunnerResult};
+use crate::runner::result::{RunnerExecuteResult, RunnerExecuteResultMult, RunnerResult};
 use crate::runner::Runner;
+use crate::{redefine_as_go_string, ExecuteResponse};
 
 pub const OSMOSIS_MIN_GAS_PRICE: u128 = 2_500;
 
@@ -173,6 +173,7 @@ impl BaseApp {
     {
         let tx_body = tx::Body::new(msgs, "", 0u32);
         let addr = signer.address();
+
         redefine_as_go_string!(addr);
 
         let seq = unsafe { AccountSequence(self.id, addr) };
@@ -238,7 +239,7 @@ impl BaseApp {
     where
         I: IntoIterator<Item = cosmrs::Any>,
     {
-        match &signer.fee_setting() {
+        let res = match &signer.fee_setting() {
             FeeSetting::Auto {
                 gas_price,
                 gas_adjustment,
@@ -256,7 +257,9 @@ impl BaseApp {
             FeeSetting::Custom { .. } => {
                 panic!("estimate fee is a private function and should never be called when fee_setting is Custom");
             }
-        }
+        };
+
+        res
     }
 
     /// Ensure that all execution that happens in `execution` happens in a block
@@ -334,6 +337,77 @@ impl<'a> Runner<'a> for BaseApp {
             .collect::<Result<Vec<cosmrs::Any>, RunnerError>>()?;
 
         self.execute_multiple_raw(msgs, signer)
+    }
+
+    fn execute_single_block<M, R>(
+        &self,
+        msgs: &[(M, &str, &SigningAccount)],
+    ) -> RunnerExecuteResultMult<R>
+    where
+        M: ::prost::Message,
+        R: ::prost::Message + Default,
+    {
+        let mut responses: Vec<ExecuteResponse<R>> = vec![];
+        unsafe {
+            BeginBlock(self.id);
+
+            let mut fees: Vec<Fee> = vec![];
+            // first estimate all fees
+            for msg in msgs.iter() {
+                let signer = msg.2;
+
+                let mut buf = Vec::new();
+                M::encode(&msg.0, &mut buf).map_err(EncodeError::ProtoEncodeError)?;
+
+                let msg = vec![cosmrs::Any {
+                    type_url: msg.1.to_string(),
+                    value: buf,
+                }];
+
+                let fee = match &signer.fee_setting() {
+                    FeeSetting::Auto { .. } => self.estimate_fee(msg.clone(), signer)?,
+                    FeeSetting::Custom { amount, gas_limit } => Fee::from_amount_and_gas(
+                        cosmrs::Coin {
+                            denom: amount.denom.parse().unwrap(),
+                            amount: amount.amount.to_string().parse().unwrap(),
+                        },
+                        *gas_limit,
+                    ),
+                };
+                fees.push(fee);
+            }
+
+            // then execute all messages
+            for (idx, msg) in msgs.iter().enumerate() {
+                let signer = msg.2;
+                let fee = &fees[idx];
+
+                let mut buf = Vec::new();
+                M::encode(&msg.0, &mut buf).map_err(EncodeError::ProtoEncodeError)?;
+
+                let msg = vec![cosmrs::Any {
+                    type_url: msg.1.to_string(),
+                    value: buf,
+                }];
+
+                let tx = self.create_signed_tx(msg.clone(), signer, fee.clone())?;
+                let mut buf = Vec::new();
+                RequestDeliverTx::encode(&RequestDeliverTx { tx: tx.into() }, &mut buf)
+                    .map_err(EncodeError::ProtoEncodeError)?;
+
+                let base64_req = base64::encode(buf);
+                redefine_as_go_string!(base64_req);
+
+                let res = Execute(self.id, base64_req);
+                let res = RawResult::from_non_null_ptr(res).into_result()?;
+                let res = ResponseDeliverTx::decode(res.as_slice()).unwrap();
+
+                responses.push(res.try_into()?);
+            }
+
+            EndBlock(self.id);
+        }
+        Ok(responses)
     }
 
     fn execute_multiple_raw<R>(

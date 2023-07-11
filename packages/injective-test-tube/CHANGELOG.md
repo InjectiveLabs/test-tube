@@ -9,11 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Tests for `Authz` messages in `Authz` and `Exchange` modules
+- Added ability to execute multiple transactions in a single block, `execute_single_block`.
 
 ### Changed
-
-- Updated Injective-Core to OpenDeFiFoundation
 
 ### Fixed
 
