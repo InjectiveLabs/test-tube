@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.1.5] - 2023-08-03
+
+### Added
+
+- Support fot native Cosmos `Staking` module
+
+### Changed
+
+- Updated Injective-Core to OpenDeFiFoundation
+
+### Fixed
+
 ## [1.1.4] - 2023-06-04
 
 ### Added
