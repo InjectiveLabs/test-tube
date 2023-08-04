@@ -20,6 +20,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	"github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/server"
 
 	"github.com/cosmos/cosmos-sdk/testutil/mock"
@@ -247,21 +248,20 @@ func (env *TestEnv) SetDefaultValidator(consAddr sdk.ConsAddress) {
 }
 
 func (env *TestEnv) setupValidator(bondStatus stakingtypes.BondStatus) sdk.ValAddress {
-	valPk := ed25519.GenPrivKey()
-	valPub := valPk.PubKey()
-	valAddr := sdk.ValAddress(valPub.Address())
+	keyPair := GeneratePrivatePubKeyPair()
+	valAddr := sdk.ValAddress(keyPair.PubKey.Address())
 
 	bondDenom := env.App.StakingKeeper.GetParams(env.Ctx).BondDenom
 	selfBond := sdk.NewCoins(sdk.Coin{Amount: sdk.NewInt(100), Denom: bondDenom})
 
-	err := testutil.FundAccount(env.App.BankKeeper, env.Ctx, sdk.AccAddress(valPub.Address()), selfBond)
+	err := testutil.FundAccount(env.App.BankKeeper, env.Ctx, sdk.AccAddress(keyPair.PubKey.Address()), selfBond)
 	requireNoErr(err)
 
 	stakingHandler := stakingkeeper.NewMsgServerImpl(env.App.StakingKeeper)
 	stakingCoin := sdk.NewCoin(bondDenom, selfBond[0].Amount)
 
-	Commission := stakingtypes.NewCommissionRates(sdk.MustNewDecFromStr("0.05"), sdk.MustNewDecFromStr("0.05"), sdk.MustNewDecFromStr("0.05"))
-	msg, err := stakingtypes.NewMsgCreateValidator(valAddr, valPub, stakingCoin, stakingtypes.Description{}, Commission, sdk.OneInt())
+	Commission := stakingtypes.NewCommissionRates(sdk.MustNewDecFromStr("0.05"), sdk.MustNewDecFromStr("0.1"), sdk.MustNewDecFromStr("0.01"))
+	msg, err := stakingtypes.NewMsgCreateValidator(valAddr, keyPair.PubKey, stakingCoin, stakingtypes.Description{}, Commission, sdk.OneInt())
 	requireNoErr(err)
 
 	res, err := stakingHandler.CreateValidator(env.Ctx, msg)
@@ -314,5 +314,21 @@ func requireNoNil(name string, nilable any) {
 func requireTrue(name string, b bool) {
 	if !b {
 		panic(fmt.Sprintf("%s must be true", name))
+	}
+}
+
+type PubPrivKeyPair struct {
+	// proto.Message
+	PrivKey ed25519.PrivKey `json:"priv_key"`
+	PubKey  types.PubKey    `json:"pub_key"`
+}
+
+func GeneratePrivatePubKeyPair() PubPrivKeyPair {
+	priv := ed25519.GenPrivKey()
+	pub := priv.PubKey()
+
+	return PubPrivKeyPair{
+		PrivKey: *priv,
+		PubKey:  pub,
 	}
 }

@@ -9,15 +9,17 @@ use prost::Message;
 
 use crate::account::{Account, FeeSetting, SigningAccount};
 use crate::bindings::{
-    AccountNumber, AccountSequence, BeginBlock, EndBlock, Execute, GetBlockHeight, GetBlockTime,
-    GetParamSet, GetValidatorAddress, GetValidatorPrivateKey, IncreaseTime, InitAccount,
-    InitTestEnv, Query, SetParamSet, Simulate,
+    AccountNumber, AccountSequence, BeginBlock, EndBlock, Execute,
+    GenerateNewValidatorPrivPubKeyPair, GetBlockHeight, GetBlockTime, GetParamSet,
+    GetValidatorAddress, GetValidatorPrivateKey, IncreaseTime, InitAccount, InitTestEnv, Query,
+    SetParamSet, Simulate,
 };
 use crate::runner::error::{DecodeError, EncodeError, RunnerError};
 use crate::runner::result::RawResult;
 use crate::runner::result::{RunnerExecuteResult, RunnerExecuteResultMult, RunnerResult};
 use crate::runner::Runner;
 use crate::{redefine_as_go_string, ExecuteResponse};
+use serde::{Deserialize, Serialize};
 
 pub const OSMOSIS_MIN_GAS_PRICE: u128 = 2_500;
 
@@ -28,6 +30,17 @@ pub struct BaseApp {
     chain_id: String,
     address_prefix: String,
     default_gas_adjustment: f64,
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct PrivPubKeypair {
+    pub priv_key: Key,
+    pub pub_key: Key,
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct Key {
+    pub key: String,
 }
 
 impl BaseApp {
@@ -108,6 +121,26 @@ impl BaseApp {
         );
 
         Ok(validator)
+    }
+
+    /// Generate a new validator private /pub key pair
+    pub fn generate_new_validator_private_pub_key_pair(&self) -> RunnerResult<PrivPubKeypair> {
+        let pair_raw: String = unsafe {
+            let pair = GenerateNewValidatorPrivPubKeyPair();
+            CString::from_raw(pair)
+        }
+        .to_str()
+        .map_err(DecodeError::Utf8Error)?
+        .to_string();
+
+        let pair_decoded = base64::decode(pair_raw).map_err(DecodeError::Base64DecodeError)?;
+        let as_string = String::from_utf8(pair_decoded).map_err(DecodeError::FromUtf8Error)?;
+
+        println!("as_string: {}", as_string);
+
+        serde_json_wasm::from_str::<PrivPubKeypair>(as_string.as_str()).map_err(|e| {
+            RunnerError::DecodeError(DecodeError::GenericDecodeError { msg: e.to_string() })
+        })
     }
 
     /// Get the current block time

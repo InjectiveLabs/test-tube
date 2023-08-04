@@ -263,6 +263,9 @@ extern "C" {
     pub fn GetValidatorPrivateKey(envId: GoUint64) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
+    pub fn GenerateNewValidatorPrivPubKeyPair() -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
     pub fn GetBlockTime(envId: GoUint64) -> GoInt64;
 }
 extern "C" {

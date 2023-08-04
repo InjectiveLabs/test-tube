@@ -2,6 +2,7 @@ use cosmrs::rpc::error::Error as TendermintRpcError;
 use cosmrs::tendermint::Error as TendermintError;
 use cosmrs::ErrorReport;
 use std::str::Utf8Error;
+use std::string::FromUtf8Error;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -55,17 +56,22 @@ pub enum DecodeError {
     #[error("invalid utf8 bytes")]
     Utf8Error(#[from] Utf8Error),
 
+    #[error("invalid utf8 bytes")]
+    FromUtf8Error(#[from] FromUtf8Error),
+
     #[error("invalid protobuf")]
     ProtoDecodeError(#[from] prost::DecodeError),
 
     #[error("invalid json")]
     JsonDecodeError(#[from] serde_json::Error),
-
     #[error("invalid base64")]
     Base64DecodeError(#[from] base64::DecodeError),
 
     #[error("invalid signing key")]
     SigningKeyDecodeError { msg: String },
+
+    #[error("generic decode error")]
+    GenericDecodeError { msg: String },
 }
 
 impl PartialEq for DecodeError {

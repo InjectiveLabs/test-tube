@@ -330,6 +330,18 @@ func GetValidatorPrivateKey(envId uint64) *C.char {
 	return C.CString(base64Priv)
 }
 
+//export GenerateNewValidatorPrivPubKeyPair
+func GenerateNewValidatorPrivPubKeyPair() *C.char {
+	keyPair := testenv.GeneratePrivatePubKeyPair()
+
+	asJson, err := json.Marshal(keyPair)
+	if err != nil {
+		return encodeErrToResultBytes(result.ExecuteError, err)
+	}
+
+	return C.CString(base64.StdEncoding.EncodeToString(asJson))
+}
+
 // ========= utils =========
 
 func loadEnv(envId uint64) testenv.TestEnv {

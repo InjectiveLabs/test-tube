@@ -5,6 +5,7 @@ use cosmwasm_std::Coin;
 use prost::Message;
 use test_tube_inj::account::SigningAccount;
 
+use test_tube_inj::runner::app::PrivPubKeypair;
 use test_tube_inj::runner::result::{RunnerExecuteResult, RunnerExecuteResultMult, RunnerResult};
 use test_tube_inj::runner::Runner;
 use test_tube_inj::BaseApp;
@@ -70,6 +71,11 @@ impl InjectiveTestApp {
     ) -> RunnerResult<SigningAccount> {
         self.inner
             .get_first_validator_signing_account(denom, gas_adjustment)
+    }
+
+    /// Generate a new validator private /pub key pair
+    pub fn generate_new_validator_private_pub_key_pair(&self) -> RunnerResult<PrivPubKeypair> {
+        self.inner.generate_new_validator_private_pub_key_pair()
     }
 
     /// Increase the time of the blockchain by the given number of seconds.
