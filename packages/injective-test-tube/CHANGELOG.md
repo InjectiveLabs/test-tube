@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Added ability to execute multiple transactions in a single block, `execute_single_block`.
+- Ability to execute multiple transactions in a single block, `execute_single_block`.
+- Limited support fot native Cosmos `Staking` module (only `MsgDelegate` and `MsgUndelegate`).
 
 ### Changed
 
