@@ -17,8 +17,8 @@ impl<'a, R: Runner<'a>> Module<'a, R> for Staking<'a, R> {
 }
 
 impl<'a, R> Staking<'a, R>
-    where
-        R: Runner<'a>,
+where
+    R: Runner<'a>,
 {
     fn_execute! {
         pub delegate: MsgDelegate["/cosmos.staking.v1beta1.MsgDelegate"] => MsgDelegateResponse
@@ -38,7 +38,6 @@ mod tests {
     use test_tube_inj::{Account, Module};
 
     use crate::{InjectiveTestApp, Staking};
-    use ed25519;
 
     const INJ: &str = "inj";
 
