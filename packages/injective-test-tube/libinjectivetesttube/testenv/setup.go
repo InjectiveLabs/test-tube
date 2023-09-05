@@ -50,6 +50,7 @@ type TestEnv struct {
 	Ctx                sdk.Context
 	ParamTypesRegistry ParamTypeRegistry
 	Validator          []byte
+	IncreaseBlockTimeInEndBlocker bool
 }
 
 // DebugAppOptions is a stub implementing AppOptions
@@ -170,7 +171,7 @@ func SetupInjectiveApp() (*app.InjectiveApp, []byte) {
 	return appInstance, validatorKey.Bytes()
 }
 
-func (env *TestEnv) BeginNewBlock(executeNextEpoch bool, timeIncreaseSeconds uint64) {
+func (env *TestEnv) BeginNewBlock(timeIncreaseSeconds uint64) {
 	var valAddr []byte
 
 	validators := env.App.StakingKeeper.GetAllValidators(env.Ctx)
@@ -187,7 +188,7 @@ func (env *TestEnv) BeginNewBlock(executeNextEpoch bool, timeIncreaseSeconds uin
 		valAddr = valAddr2.Bytes()
 	}
 
-	env.beginNewBlockWithProposer(executeNextEpoch, valAddr, timeIncreaseSeconds)
+	env.beginNewBlockWithProposer(valAddr, timeIncreaseSeconds)
 }
 
 func (env *TestEnv) GetValidatorAddresses() []string {
@@ -205,7 +206,7 @@ func (env *TestEnv) GetValidatorPrivateKey() []byte {
 }
 
 // beginNewBlockWithProposer begins a new block with a proposer.
-func (env *TestEnv) beginNewBlockWithProposer(executeNextEpoch bool, proposer sdk.ConsAddress, timeIncreaseSeconds uint64) {
+func (env *TestEnv) beginNewBlockWithProposer(proposer sdk.ConsAddress, timeIncreaseSeconds uint64) {
 	validator, found := env.App.StakingKeeper.GetValidatorByConsAddr(env.Ctx, proposer)
 
 	if !found {
@@ -217,6 +218,10 @@ func (env *TestEnv) beginNewBlockWithProposer(executeNextEpoch bool, proposer sd
 	requireNoErr(err)
 
 	valAddr := valConsAddr.Bytes()
+
+	if env.IncreaseBlockTimeInEndBlocker {
+		timeIncreaseSeconds = 0
+	}
 
 	newBlockTime := env.Ctx.BlockTime().Add(time.Duration(timeIncreaseSeconds) * time.Second)
 	header := tmproto.Header{ChainID: "injective-777", Height: env.Ctx.BlockHeight() + 1, Time: newBlockTime}

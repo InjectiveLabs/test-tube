@@ -9,9 +9,9 @@ use prost::Message;
 
 use crate::account::{Account, FeeSetting, SigningAccount};
 use crate::bindings::{
-    AccountNumber, AccountSequence, BeginBlock, EndBlock, Execute, GetBlockHeight, GetBlockTime,
-    GetParamSet, GetValidatorAddress, GetValidatorPrivateKey, IncreaseTime, InitAccount,
-    InitTestEnv, Query, SetParamSet, Simulate,
+    AccountNumber, AccountSequence, BeginBlock, EnableIncreasingBlockTimeInEndBlocker, EndBlock,
+    Execute, GetBlockHeight, GetBlockTime, GetParamSet, GetValidatorAddress,
+    GetValidatorPrivateKey, IncreaseTime, InitAccount, InitTestEnv, Query, SetParamSet, Simulate,
 };
 use crate::runner::error::{DecodeError, EncodeError, RunnerError};
 use crate::runner::result::RawResult;
@@ -310,6 +310,11 @@ impl BaseApp {
             let pset = P::decode(pset.as_slice()).map_err(DecodeError::ProtoDecodeError)?;
             Ok(pset)
         }
+    }
+
+    // Block time will be incremented in End Blocker instead of Begin Blocker. Use with caution!
+    pub fn enable_increasing_block_time_in_end_blocker(&self) {
+        unsafe { EnableIncreasingBlockTimeInEndBlocker(self.id) }
     }
 }
 
