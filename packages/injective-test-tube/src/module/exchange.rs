@@ -30,11 +30,31 @@ where
     }
 
     fn_execute! {
+        pub cancel_spot_order: v1beta1::MsgCancelSpotOrder => v1beta1::MsgCancelSpotOrderResponse
+    }
+
+    fn_execute! {
+        pub cancel_derivative_order: v1beta1::MsgCancelDerivativeOrder => v1beta1::MsgCancelDerivativeOrderResponse
+    }
+
+    fn_execute! {
+        pub batch_update_orders: v1beta1::MsgBatchUpdateOrders => v1beta1::MsgBatchUpdateOrdersResponse
+    }
+
+    fn_execute! {
         pub instant_perpetual_market_launch: v1beta1::MsgInstantPerpetualMarketLaunch => v1beta1::MsgInstantPerpetualMarketLaunchResponse
     }
 
     fn_execute! {
         pub privileged_execute_contract: v1beta1::MsgPrivilegedExecuteContract => v1beta1::MsgPrivilegedExecuteContractResponse
+    }
+
+    fn_execute! {
+        pub deposit: v1beta1::MsgDeposit => v1beta1::MsgDepositResponse
+    }
+
+    fn_execute! {
+        pub withdraw: v1beta1::MsgWithdraw => v1beta1::MsgWithdrawResponse
     }
 
     fn_query! {
@@ -109,13 +129,17 @@ where
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{Addr, Coin};
-    use injective_cosmwasm::get_default_subaccount_id_for_checked_address;
+    use injective_cosmwasm::{
+        checked_address_to_subaccount_id, get_default_subaccount_id_for_checked_address,
+    };
     use injective_std::shim::Any;
     use injective_std::types::{
         cosmos::authz::v1beta1::{GenericAuthorization, Grant, MsgExec, MsgGrant},
+        cosmos::base::v1beta1::Coin as SDKCoin,
         injective::exchange::v1beta1,
     };
     use prost::Message;
+    use serde::de;
 
     use crate::{Account, Authz, Exchange, InjectiveTestApp};
     use test_tube_inj::Module;
@@ -130,6 +154,13 @@ mod tests {
             ])
             .unwrap();
         let trader = app
+            .init_account(&[
+                Coin::new(10_000_000_000_000_000_000_000u128, "inj"),
+                Coin::new(100_000_000_000_000_000_000u128, "usdt"),
+            ])
+            .unwrap();
+
+        let depositor = app
             .init_account(&[
                 Coin::new(10_000_000_000_000_000_000_000u128, "inj"),
                 Coin::new(100_000_000_000_000_000_000u128, "usdt"),
@@ -367,5 +398,79 @@ mod tests {
 
         assert_eq!(orders_before.orders.len(), 1);
         assert_eq!(orders_after.orders.len(), 2);
+
+        exchange
+            .deposit(
+                v1beta1::MsgDeposit {
+                    sender: depositor.address(),
+                    subaccount_id: checked_address_to_subaccount_id(
+                        &Addr::unchecked(depositor.address()),
+                        1u32,
+                    )
+                    .to_string(),
+                    amount: Some(SDKCoin {
+                        amount: 1u128.to_string(),
+                        denom: "inj".to_string(),
+                    }),
+                },
+                &depositor,
+            )
+            .unwrap();
+
+        let response = exchange
+            .query_subaccount_deposits(&v1beta1::QuerySubaccountDepositsRequest {
+                subaccount_id: checked_address_to_subaccount_id(
+                    &Addr::unchecked(depositor.address()),
+                    1u32,
+                )
+                .to_string(),
+                subaccount: None,
+            })
+            .unwrap();
+
+        assert_eq!(
+            response.deposits["inj"],
+            v1beta1::Deposit {
+                available_balance: "1000000000000000000".to_string(),
+                total_balance: "1000000000000000000".to_string(),
+            }
+        );
+
+        exchange
+            .withdraw(
+                v1beta1::MsgWithdraw {
+                    sender: depositor.address(),
+                    subaccount_id: checked_address_to_subaccount_id(
+                        &Addr::unchecked(depositor.address()),
+                        1u32,
+                    )
+                    .to_string(),
+                    amount: Some(SDKCoin {
+                        amount: 1u128.to_string(),
+                        denom: "inj".to_string(),
+                    }),
+                },
+                &depositor,
+            )
+            .unwrap();
+
+        let response = exchange
+            .query_subaccount_deposits(&v1beta1::QuerySubaccountDepositsRequest {
+                subaccount_id: checked_address_to_subaccount_id(
+                    &Addr::unchecked(depositor.address()),
+                    1u32,
+                )
+                .to_string(),
+                subaccount: None,
+            })
+            .unwrap();
+
+        assert_eq!(
+            response.deposits["inj"],
+            v1beta1::Deposit {
+                available_balance: "0".to_string(),
+                total_balance: "0".to_string(),
+            }
+        );
     }
 }

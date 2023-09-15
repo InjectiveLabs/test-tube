@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 - Added ability to execute multiple transactions in a single block, `execute_single_block`.
+- `MsgDeposit`, `MsgWithdraw` and `MsgBatchUpdateOrders` to exchange module.
 
 ### Changed
 
