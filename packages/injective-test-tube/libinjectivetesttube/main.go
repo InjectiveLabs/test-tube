@@ -47,7 +47,7 @@ func InitTestEnv() uint64 {
 	// Allow testing unoptimized contract
 	wasmtypes.MaxWasmSize = 1024 * 1024 * 1024 * 1024 * 1024
 
-	env.Ctx = env.App.BaseApp.NewContext(false, tmproto.Header{Height: 0, ChainID: "injective-777", Time: time.Now().UTC()})
+	env.Ctx = env.App.BaseApp.NewContext(false, tmproto.Header{Height: 0, ChainID: "injective-777", Time: time.Now().UTC().Round(time.Second)})
 
 	validators := env.App.StakingKeeper.GetAllValidators(env.Ctx)
 	valAddrFancy, _ := validators[0].GetConsAddr()
@@ -60,7 +60,7 @@ func InitTestEnv() uint64 {
 		0,
 	))
 
-	env.BeginNewBlock(false, 5)
+	env.BeginNewBlock(5)
 	reqEndBlock := abci.RequestEndBlock{Height: env.Ctx.BlockHeight()}
 	env.App.EndBlock(reqEndBlock)
 	env.App.Commit()
@@ -100,21 +100,45 @@ func InitAccount(envId uint64, coinsJson string) *C.char {
 //export IncreaseTime
 func IncreaseTime(envId uint64, seconds uint64) {
 	env := loadEnv(envId)
-	env.BeginNewBlock(false, seconds)
-	envRegister.Store(envId, env)
-	EndBlock(envId)
+	if env.IncreaseBlockTimeInEndBlocker {
+		env.BeginNewBlock(0)
+		envRegister.Store(envId, env)
+		EndBlockWithTimeIncrease(envId, seconds)
+	} else {
+		env.BeginNewBlock(seconds)
+		envRegister.Store(envId, env)
+		EndBlock(envId)
+	}
+
 }
 
 //export BeginBlock
 func BeginBlock(envId uint64) {
 	env := loadEnv(envId)
-	env.BeginNewBlock(false, 1)
+	env.BeginNewBlock(1)
 	envRegister.Store(envId, env)
 }
 
 //export EndBlock
 func EndBlock(envId uint64) {
 	env := loadEnv(envId)
+	reqEndBlock := abci.RequestEndBlock{Height: env.Ctx.BlockHeight()}
+	if env.IncreaseBlockTimeInEndBlocker {
+		newBlockTime := env.Ctx.BlockTime().Add(time.Duration(1) * time.Second)
+		newCtx := env.Ctx.WithBlockTime(newBlockTime).WithBlockHeight(env.Ctx.BlockHeight())
+		env.Ctx = newCtx
+		reqEndBlock = abci.RequestEndBlock{Height: env.Ctx.BlockHeight()}
+	}
+	env.App.EndBlock(reqEndBlock)
+	env.App.Commit()
+	envRegister.Store(envId, env)
+}
+
+func EndBlockWithTimeIncrease(envId uint64, timeToIncrease uint64) {
+	env := loadEnv(envId)
+	newBlockTime := env.Ctx.BlockTime().Add(time.Duration(timeToIncrease) * time.Second)
+	newCtx := env.Ctx.WithBlockTime(newBlockTime).WithBlockHeight(env.Ctx.BlockHeight())
+	env.Ctx = newCtx
 	reqEndBlock := abci.RequestEndBlock{Height: env.Ctx.BlockHeight()}
 	env.App.EndBlock(reqEndBlock)
 	env.App.Commit()
@@ -328,6 +352,13 @@ func GetValidatorPrivateKey(envId uint64) *C.char {
 	base64Priv := base64.StdEncoding.EncodeToString(priv)
 
 	return C.CString(base64Priv)
+}
+
+//export EnableIncreasingBlockTimeInEndBlocker
+func EnableIncreasingBlockTimeInEndBlocker(envId uint64) {
+	env := loadEnv(envId)
+	env.IncreaseBlockTimeInEndBlocker = true
+	envRegister.Store(envId, env)
 }
 
 // ========= utils =========
