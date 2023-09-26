@@ -113,6 +113,10 @@ impl InjectiveTestApp {
     ) -> RunnerResult<P> {
         self.inner.get_param_set(subspace, type_url)
     }
+
+    pub fn enable_increasing_block_time_in_end_blocker(&self) {
+        self.inner.enable_increasing_block_time_in_end_blocker()
+    }
 }
 
 impl<'a> Runner<'a> for InjectiveTestApp {

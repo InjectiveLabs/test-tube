@@ -9,8 +9,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Added ability to execute multiple transactions in a single block, `execute_single_block`.
+### Changed
+
+### Fixed
+
+## [1.1.5] - 2023-09-26
+
+### Added
+
 - `MsgDeposit`, `MsgWithdraw` and `MsgBatchUpdateOrders` to exchange module.
+- Added ability to execute multiple transactions in a single block, `execute_single_block`.
+- Limited support fot native Cosmos `Staking` module (only `MsgDelegate` and `MsgUndelegate`).
 
 ### Changed
 
