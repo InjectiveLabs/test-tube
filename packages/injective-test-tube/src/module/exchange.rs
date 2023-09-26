@@ -139,7 +139,6 @@ mod tests {
         injective::exchange::v1beta1,
     };
     use prost::Message;
-    use serde::de;
 
     use crate::{Account, Authz, Exchange, InjectiveTestApp};
     use test_tube_inj::Module;
