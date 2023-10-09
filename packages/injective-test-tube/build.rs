@@ -106,6 +106,8 @@ fn build_libinjectivetesttube(out: PathBuf) {
         .current_dir(manifest_dir.join("libinjectivetesttube"))
         .arg("build")
         .arg("-buildmode=c-shared")
+        .arg("-ldflags")
+        .arg("-w")
         .arg("-o")
         .arg(out)
         .arg("main.go")
