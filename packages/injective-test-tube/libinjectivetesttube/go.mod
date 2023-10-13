@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/CosmWasm/wasmd v0.40.2
-	github.com/CosmWasm/wasmvm v1.4.1 // indirect
+	github.com/CosmWasm/wasmvm v1.2.4 // indirect
 	github.com/bandprotocol/bandchain-packet v0.0.4 // indirect
 	github.com/cometbft/cometbft v0.37.2
 	github.com/cometbft/cometbft-db v0.8.0
@@ -197,7 +197,7 @@ require (
 
 replace (
 	cosmossdk.io/math => github.com/InjectiveLabs/cosmos-sdk/math v0.47.3-inj-1
-	github.com/CosmWasm/wasmd => github.com/InjectiveLabs/wasmd v0.40.2-inj-debug-2
+	github.com/CosmWasm/wasmd => github.com/InjectiveLabs/wasmd v0.40.2-inj
 	github.com/InjectiveLabs/injective-core => ../injective-core
 	github.com/bandprotocol/bandchain-packet => github.com/InjectiveLabs/bandchain-packet v0.0.4-inj-1
 	github.com/cometbft/cometbft => github.com/InjectiveLabs/cometbft v0.37.2-inj
