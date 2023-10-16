@@ -2,8 +2,6 @@
 
 **NOTE:** THIS BRANCH FOLLOWS THE LATEST DEV BRANCH OF INJECTIVE-CORE USE AT OWN RISK NOT STABLE!
 
-**CURRENT COMMIT:** `801c7d14cd816ec7023bafaf56fd77e10ecffcc2`
-
 `test-tube` is a generic library for building testing environments for [CosmWasm](https://cosmwasm.com/) smart contracts. It allows you to test your smart contract logic against the actual Cosmos SDK chain's logic, which is written in Go, using Rust. This eliminates the need to write Go code or learn Go in order to test your smart contracts against the Cosmos SDK.
 
 This repo contains [`injective-test-tube`] which uses a delta of [`osmosis-test-tube`](https://github.com/osmosis-labs/test-tube/tree/main/packages/osmosis-test-tube) to enable testing against `injective-core`.
