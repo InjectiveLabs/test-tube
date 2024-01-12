@@ -141,7 +141,7 @@ let contract_addr = wasm
             mutable: true,
         },
         None, // contract admin used for migration, not the same as cw1_whitelist admin
-        None, // contract label
+        Some("Test label"), // contract label
         &[], // funds
         admin, // signer
     )
@@ -198,7 +198,7 @@ let contract_addr = wasm
             mutable: true,
         },
         None, // contract admin used for migration, not the same as cw1_whitelist admin
-        None, // contract label
+        Some("Test label"), // contract label
         &[], // funds
         admin, // signer
     )
@@ -249,7 +249,7 @@ Let's try interact with `Exchange` module:
 ```rust
 use cosmwasm_std::{Addr, Coin};
 use injective_std::types::injective::exchange::v1beta1::{
-    MarketStatus, MsgInstantSpotMarketLaunch, 
+    MarketStatus, MsgInstantSpotMarketLaunch,
     QuerySpotMarketsRequest, QuerySpotMarketsResponse, SpotMarket,
 };
 use injective_test_tube::{Account, Exchange, InjectiveTestApp};

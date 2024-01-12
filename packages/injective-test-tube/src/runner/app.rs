@@ -407,7 +407,7 @@ mod tests {
                     mutable: true,
                 },
                 Some(&admin.address()),
-                None,
+                Some("Test label"),
                 &[],
                 admin,
             )

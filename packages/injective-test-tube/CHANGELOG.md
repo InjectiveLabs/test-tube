@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.1.7] - 2024-01-12
+
+### Added
+
+### Changed
+
+- Updated:
+  - cosmwasm-std
+  - injective-cosmwasm
+  - injective-std
+
+### Fixed
+
 ## [1.1.6] - 2023-10-22
 
 ### Added
@@ -53,7 +66,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-- Updated dependency `injective-core@831cd2e0e8864dd93c1dc0e6d678217346284a70` 
+- Updated dependency `injective-core@831cd2e0e8864dd93c1dc0e6d678217346284a70`
 - Updated dependency `injective-cosmwasm v0.2.1`
 
 ### Fixed
@@ -67,7 +80,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Updated dependency `injective-core@ca0d72904f5dc13c05f13d9407d2e22ba55739b4`
-    - This adds support for WasmX module queries
+  - This adds support for WasmX module queries
 - Updated dependency `injective-std v0.1.2`
 
 ### Fixed
@@ -85,7 +98,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 ## [1.1.0] - 2023-05-25
-  
+
 Initial version of injective-test-tube.
 
 ### Added
