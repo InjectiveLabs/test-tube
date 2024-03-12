@@ -390,6 +390,77 @@ impl<'a> Runner<'a> for BaseApp {
         }
     }
 
+    fn execute_single_block<M, R>(
+        &self,
+        msgs: &[(M, &str, &SigningAccount)],
+    ) -> RunnerExecuteResultMult<R>
+    where
+        M: ::prost::Message,
+        R: ::prost::Message + Default,
+    {
+        let mut responses: Vec<ExecuteResponse<R>> = vec![];
+        unsafe {
+            BeginBlock(self.id);
+
+            let mut fees: Vec<Fee> = vec![];
+            // first estimate all fees
+            for msg in msgs.iter() {
+                let signer = msg.2;
+
+                let mut buf = Vec::new();
+                M::encode(&msg.0, &mut buf).map_err(EncodeError::ProtoEncodeError)?;
+
+                let msg = vec![cosmrs::Any {
+                    type_url: msg.1.to_string(),
+                    value: buf,
+                }];
+
+                let fee = match &signer.fee_setting() {
+                    FeeSetting::Auto { .. } => self.estimate_fee(msg.clone(), signer)?,
+                    FeeSetting::Custom { amount, gas_limit } => Fee::from_amount_and_gas(
+                        cosmrs::Coin {
+                            denom: amount.denom.parse().unwrap(),
+                            amount: amount.amount.to_string().parse().unwrap(),
+                        },
+                        *gas_limit,
+                    ),
+                };
+                fees.push(fee);
+            }
+
+            // then execute all messages
+            for (idx, msg) in msgs.iter().enumerate() {
+                let signer = msg.2;
+                let fee = &fees[idx];
+
+                let mut buf = Vec::new();
+                M::encode(&msg.0, &mut buf).map_err(EncodeError::ProtoEncodeError)?;
+
+                let msg = vec![cosmrs::Any {
+                    type_url: msg.1.to_string(),
+                    value: buf,
+                }];
+
+                let tx = self.create_signed_tx(msg.clone(), signer, fee.clone())?;
+                let mut buf = Vec::new();
+                RequestDeliverTx::encode(&RequestDeliverTx { tx: tx.into() }, &mut buf)
+                    .map_err(EncodeError::ProtoEncodeError)?;
+
+                let base64_req = BASE64_STANDARD.encode(buf);
+                redefine_as_go_string!(base64_req);
+
+                let res = Execute(self.id, base64_req);
+                let res = RawResult::from_non_null_ptr(res).into_result()?;
+                let res = ResponseDeliverTx::decode(res.as_slice()).unwrap();
+
+                responses.push(res.try_into()?);
+            }
+
+            EndBlock(self.id);
+        }
+        Ok(responses)
+    }
+
     fn query<Q, R>(&self, path: &str, q: &Q) -> RunnerResult<R>
     where
         Q: ::prost::Message,

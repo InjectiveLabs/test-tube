@@ -32,6 +32,14 @@ pub trait Runner<'a> {
         M: ::prost::Message,
         R: ::prost::Message + Default;
 
+    fn execute_single_block<M, R>(
+        &self,
+        msgs: &[(M, &str, &SigningAccount)],
+    ) -> RunnerExecuteResultMult<R>
+    where
+        M: ::prost::Message,
+        R: ::prost::Message + Default;
+
     fn execute_multiple_raw<R>(
         &self,
         msgs: Vec<cosmrs::Any>,
