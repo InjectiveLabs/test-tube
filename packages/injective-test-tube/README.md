@@ -40,7 +40,7 @@ let new_admin = &accs[1];
 ```
 
 Now we have the appchain instance and accounts that have some initial balances and can interact with the appchain.
-This does not run Docker instance or spawning external process, it just load the appchain's code as a library create an in memory instance.
+This does not run Docker instance or spawning external process, it just loads the appchain's code as a library to create an in memory instance.
 
 Note that `init_accounts` is a convenience function that creates multiple accounts with the same initial balance.
 If you want to create just one account, you can use `init_account` instead.
@@ -85,7 +85,7 @@ let new_admin = &accs[1];
 
 // ============= NEW CODE ================
 
-// `Wasm` is the module we use to interact with cosmwasm releated logic on the appchain
+// `Wasm` is the module we use to interact with cosmwasm related logic on the appchain
 // it implements `Module` trait which you will see more later.
 let wasm = Wasm::new(&app);
 
@@ -237,14 +237,14 @@ assert!(admin_list.mutable);
 
 ## Debugging
 
-In your contract code, if you want to debug, you can use [`deps.api.debug(..)`](https://docs.rs/cosmwasm-std/latest/cosmwasm_std/trait.Api.html#tymethod.debug) which will prints the debug message to stdout. `wasmd` disabled this by default but `InjectiveTestApp` allows stdout emission so that you can debug your smart contract while running tests.
+In your contract code, if you want to debug, you can use [`deps.api.debug(..)`](https://docs.rs/cosmwasm-std/latest/cosmwasm_std/trait.Api.html#tymethod.debug) which will print the debug message to stdout. `wasmd` disabled this by default but `InjectiveTestApp` allows stdout emission so that you can debug your smart contract while running tests.
 
 ## Using Module Wrapper
 
-In some cases, you might want interact directly with appchain logic to setup the environment or query appchain's state.
+In some cases, you might want to interact directly with appchain logic to setup the environment or query appchain's state.
 Module wrappers provides convenient functions to interact with the appchain's module.
 
-Let's try interact with `Exchange` module:
+Let's try to interact with `Exchange` module:
 
 ```rust
 use cosmwasm_std::{Addr, Coin};

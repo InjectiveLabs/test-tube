@@ -1,7 +1,7 @@
 use cosmwasm_std::CosmosMsg;
 
 use crate::account::SigningAccount;
-use crate::runner::result::{RunnerExecuteResult, RunnerExecuteResultMult, RunnerResult};
+use crate::runner::result::{RunnerExecuteResult, RunnerResult};
 use crate::utils::{bank_msg_to_any, wasm_msg_to_any};
 use crate::RunnerError;
 

@@ -1,7 +1,9 @@
 use std::ffi::CString;
 
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use base64::Engine as _;
 use cosmrs::crypto::secp256k1::SigningKey;
-use cosmrs::proto::tendermint::abci::{RequestDeliverTx, ResponseDeliverTx};
+use cosmrs::proto::tendermint::v0_37::abci::{RequestDeliverTx, ResponseDeliverTx};
 use cosmrs::tx::{Fee, SignerInfo};
 use cosmrs::{tx, Any};
 use cosmwasm_std::Coin;
@@ -13,11 +15,11 @@ use crate::bindings::{
     Execute, GetBlockHeight, GetBlockTime, GetParamSet, GetValidatorAddress,
     GetValidatorPrivateKey, IncreaseTime, InitAccount, InitTestEnv, Query, SetParamSet, Simulate,
 };
+use crate::redefine_as_go_string;
 use crate::runner::error::{DecodeError, EncodeError, RunnerError};
 use crate::runner::result::RawResult;
-use crate::runner::result::{RunnerExecuteResult, RunnerExecuteResultMult, RunnerResult};
+use crate::runner::result::{RunnerExecuteResult, RunnerResult};
 use crate::runner::Runner;
-use crate::{redefine_as_go_string, ExecuteResponse};
 
 pub const OSMOSIS_MIN_GAS_PRICE: u128 = 2_500;
 
@@ -94,7 +96,9 @@ impl BaseApp {
         .map_err(DecodeError::Utf8Error)?
         .to_string();
 
-        let secp256k1_priv = base64::decode(pkey).unwrap();
+        let secp256k1_priv = BASE64_STANDARD
+            .decode(pkey)
+            .map_err(DecodeError::Base64DecodeError)?;
 
         let signing_key = SigningKey::from_slice(&secp256k1_priv).unwrap();
 
@@ -140,7 +144,9 @@ impl BaseApp {
         .map_err(DecodeError::Utf8Error)?
         .to_string();
 
-        let secp256k1_priv = base64::decode(base64_priv).map_err(DecodeError::Base64DecodeError)?;
+        let secp256k1_priv = BASE64_STANDARD
+            .decode(base64_priv)
+            .map_err(DecodeError::Base64DecodeError)?;
 
         let signing_key = SigningKey::from_slice(&secp256k1_priv).map_err(|e| {
             let msg = e.to_string();
@@ -223,7 +229,8 @@ impl BaseApp {
         );
 
         let tx = self.create_signed_tx(msgs, signer, zero_fee)?;
-        let base64_tx_bytes = base64::encode(tx);
+        let base64_tx_bytes = BASE64_STANDARD.encode(tx);
+
         redefine_as_go_string!(base64_tx_bytes);
 
         unsafe {
@@ -283,7 +290,7 @@ impl BaseApp {
         unsafe {
             BeginBlock(self.id);
             let pset = Message::encode_to_vec(&pset.into());
-            let pset = base64::encode(pset);
+            let pset = BASE64_STANDARD.encode(pset);
             redefine_as_go_string!(pset);
             redefine_as_go_string!(subspace);
             let res = SetParamSet(self.id, subspace, pset);
@@ -344,6 +351,45 @@ impl<'a> Runner<'a> for BaseApp {
         self.execute_multiple_raw(msgs, signer)
     }
 
+    fn execute_multiple_raw<R>(
+        &self,
+        msgs: Vec<cosmrs::Any>,
+        signer: &SigningAccount,
+    ) -> RunnerExecuteResult<R>
+    where
+        R: ::prost::Message + Default,
+    {
+        unsafe {
+            self.run_block(|| {
+                let fee = match &signer.fee_setting() {
+                    FeeSetting::Auto { .. } => self.estimate_fee(msgs.clone(), signer)?,
+                    FeeSetting::Custom { amount, gas_limit } => Fee::from_amount_and_gas(
+                        cosmrs::Coin {
+                            denom: amount.denom.parse().unwrap(),
+                            amount: amount.amount.to_string().parse().unwrap(),
+                        },
+                        *gas_limit,
+                    ),
+                };
+
+                let tx = self.create_signed_tx(msgs.clone(), signer, fee)?;
+                let mut buf = Vec::new();
+                RequestDeliverTx::encode(&RequestDeliverTx { tx: tx.into() }, &mut buf)
+                    .map_err(EncodeError::ProtoEncodeError)?;
+
+                let base64_req = BASE64_STANDARD.encode(buf);
+                redefine_as_go_string!(base64_req);
+
+                let res = Execute(self.id, base64_req);
+                let res = RawResult::from_non_null_ptr(res).into_result()?;
+
+                ResponseDeliverTx::decode(res.as_slice())
+                    .unwrap()
+                    .try_into()
+            })
+        }
+    }
+
     fn execute_single_block<M, R>(
         &self,
         msgs: &[(M, &str, &SigningAccount)],
@@ -400,7 +446,7 @@ impl<'a> Runner<'a> for BaseApp {
                 RequestDeliverTx::encode(&RequestDeliverTx { tx: tx.into() }, &mut buf)
                     .map_err(EncodeError::ProtoEncodeError)?;
 
-                let base64_req = base64::encode(buf);
+                let base64_req = BASE64_STANDARD.encode(buf);
                 redefine_as_go_string!(base64_req);
 
                 let res = Execute(self.id, base64_req);
@@ -415,45 +461,6 @@ impl<'a> Runner<'a> for BaseApp {
         Ok(responses)
     }
 
-    fn execute_multiple_raw<R>(
-        &self,
-        msgs: Vec<cosmrs::Any>,
-        signer: &SigningAccount,
-    ) -> RunnerExecuteResult<R>
-    where
-        R: ::prost::Message + Default,
-    {
-        unsafe {
-            self.run_block(|| {
-                let fee = match &signer.fee_setting() {
-                    FeeSetting::Auto { .. } => self.estimate_fee(msgs.clone(), signer)?,
-                    FeeSetting::Custom { amount, gas_limit } => Fee::from_amount_and_gas(
-                        cosmrs::Coin {
-                            denom: amount.denom.parse().unwrap(),
-                            amount: amount.amount.to_string().parse().unwrap(),
-                        },
-                        *gas_limit,
-                    ),
-                };
-
-                let tx = self.create_signed_tx(msgs.clone(), signer, fee)?;
-                let mut buf = Vec::new();
-                RequestDeliverTx::encode(&RequestDeliverTx { tx: tx.into() }, &mut buf)
-                    .map_err(EncodeError::ProtoEncodeError)?;
-
-                let base64_req = base64::encode(buf);
-                redefine_as_go_string!(base64_req);
-
-                let res = Execute(self.id, base64_req);
-                let res = RawResult::from_non_null_ptr(res).into_result()?;
-
-                ResponseDeliverTx::decode(res.as_slice())
-                    .unwrap()
-                    .try_into()
-            })
-        }
-    }
-
     fn query<Q, R>(&self, path: &str, q: &Q) -> RunnerResult<R>
     where
         Q: ::prost::Message,
@@ -463,7 +470,8 @@ impl<'a> Runner<'a> for BaseApp {
 
         Q::encode(q, &mut buf).map_err(EncodeError::ProtoEncodeError)?;
 
-        let base64_query_msg_bytes = base64::encode(buf);
+        let base64_query_msg_bytes = BASE64_STANDARD.encode(buf);
+
         redefine_as_go_string!(path);
         redefine_as_go_string!(base64_query_msg_bytes);
 
