@@ -19,8 +19,9 @@ injective-std      = { version = "0.1.5" }
 prost              = "0.11.0"
 serde              = "1.0.144"
 serde_json         = "1.0.85"
-test-tube-inj      = { version = "1.1.2" }
-thiserror          = "1.0.34"
+# test-tube-inj      = { version = "1.1.2" }
+test-tube-inj = { path = "../test-tube" }
+thiserror     = "1.0.34"
 
 [build-dependencies]
 bindgen = "0.60.1"

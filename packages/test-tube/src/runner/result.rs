@@ -12,6 +12,7 @@ use std::str::Utf8Error;
 
 pub type RunnerResult<T> = Result<T, RunnerError>;
 pub type RunnerExecuteResult<R> = Result<ExecuteResponse<R>, RunnerError>;
+pub type RunnerExecuteResultMult<R> = Result<Vec<ExecuteResponse<R>>, RunnerError>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExecuteResponse<R>
