@@ -10,18 +10,17 @@ version     = "1.1.8"
 exclude = [ "injective-core", "test_artifacts" ]
 
 [dependencies]
-base64             = "0.13.0"
-cosmrs             = { version = "0.14.0", features = [ "cosmwasm" ] }
+base64             = "0.21.5"
+cosmrs             = { version = "0.15.0", features = [ "cosmwasm", "rpc" ] }
 cosmwasm-std       = "1.5.0"
 hex                = "0.4.2"
 injective-cosmwasm = { version = "0.2.18" }
-injective-std      = { version = "0.1.5" }
-prost              = "0.11.0"
+injective-std      = { version = "0.1.6" }
+prost              = "0.12.3"
 serde              = "1.0.144"
 serde_json         = "1.0.85"
-# test-tube-inj      = { version = "1.1.2" }
-test-tube-inj = { path = "../test-tube" }
-thiserror     = "1.0.34"
+test-tube-inj      = { version = "1.1.2" }
+thiserror          = "1.0.34"
 
 [build-dependencies]
 bindgen = "0.60.1"
