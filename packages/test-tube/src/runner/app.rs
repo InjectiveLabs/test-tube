@@ -15,11 +15,11 @@ use crate::bindings::{
     Execute, GetBlockHeight, GetBlockTime, GetParamSet, GetValidatorAddress,
     GetValidatorPrivateKey, IncreaseTime, InitAccount, InitTestEnv, Query, SetParamSet, Simulate,
 };
-use crate::redefine_as_go_string;
 use crate::runner::error::{DecodeError, EncodeError, RunnerError};
 use crate::runner::result::RawResult;
-use crate::runner::result::{RunnerExecuteResult, RunnerResult};
+use crate::runner::result::{RunnerExecuteResult, RunnerExecuteResultMult, RunnerResult};
 use crate::runner::Runner;
+use crate::{redefine_as_go_string, ExecuteResponse};
 
 pub const OSMOSIS_MIN_GAS_PRICE: u128 = 2_500;
 
