@@ -12,7 +12,7 @@ exclude = [ "injective-core", "test_artifacts" ]
 [dependencies]
 base64             = "0.21.5"
 cosmrs             = { version = "0.15.0", features = [ "cosmwasm", "rpc" ] }
-cosmwasm-std       = "1.5.0"
+cosmwasm-std       = { version = "1.5.0", features = [ "abort", "cosmwasm_1_2", "cosmwasm_1_3", "cosmwasm_1_4", "iterator", "stargate" ] }
 hex                = "0.4.2"
 injective-cosmwasm = { version = "0.2.18" }
 injective-std      = { version = "0.1.6" }
