@@ -2,7 +2,7 @@
 
 CosmWasm x Injective integration testing library that, unlike `cw-multi-test`, it allows you to test your cosmwasm contract against real chain's logic instead of mocks.
 
-As the project depends on currently private repos, no crate is published rather please refer to [`CHANGELOG`](./CHANGELOG.md) for features and update information.
+The `dev` branch depends on currently private repos, but you can use published versions instead. Please refer to [`CHANGELOG`](./CHANGELOG.md) for features and update information.
 
 ## Table of Contents
 
