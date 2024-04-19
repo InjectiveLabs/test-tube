@@ -29,7 +29,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.16.0 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
-	github.com/xlab/closer v0.0.0-20190328110542-03326addb7c2 // indirect
+	github.com/xlab/closer v1.1.0 // indirect
 	github.com/xlab/suplog v1.3.1 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230711153332-06a737ee72cb // indirect
