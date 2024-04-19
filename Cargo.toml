@@ -1,5 +1,4 @@
 [workspace]
 
-members = [
-  "packages/*",
-]
+members  = [ "packages/*" ]
+resolver = "2"

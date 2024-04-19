@@ -39,8 +39,11 @@ fn main() {
     }
 
     let out_dir_lib_path = out_dir.join(lib_filename);
-    println!("out_dir_lib_path: {:?}", out_dir_lib_path);
-    build_libinjectivetesttube(out_dir_lib_path);
+    if std::fs::metadata(&out_dir_lib_path).is_err()
+        || env::var("INJECTIVE_TUBE_DEV") == Ok("1".to_string())
+    {
+        build_libinjectivetesttube(out_dir_lib_path);
+    }
 
     // copy built lib to target dir if debug build
     if env::var("PROFILE").unwrap() == "debug" {
@@ -102,6 +105,20 @@ fn build_libinjectivetesttube(out: PathBuf) {
     }
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let tidy_status = Command::new("go")
+        .current_dir(manifest_dir.join("libinjectivetesttube"))
+        .arg("mod")
+        .arg("tidy")
+        .spawn()
+        .unwrap()
+        .wait()
+        .unwrap();
+
+    if !tidy_status.success() {
+        panic!("failed to run 'go mod tidy'");
+    }
+
     let exit_status = Command::new("go")
         .current_dir(manifest_dir.join("libinjectivetesttube"))
         .arg("build")

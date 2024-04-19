@@ -13,6 +13,29 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.1.7] - 2024-01-12
+
+### Added
+
+### Changed
+
+- Updated:
+  - cosmwasm-std
+  - injective-cosmwasm
+  - injective-std
+
+### Fixed
+
+## [1.1.6] - 2023-10-22
+
+### Added
+
+### Changed
+
+### Fixed
+
+- Fixed Xcode 15 issue
+
 ## [1.1.5] - 2023-09-26
 
 ### Added
