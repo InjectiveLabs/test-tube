@@ -57,6 +57,10 @@ where
         pub withdraw: v1beta1::MsgWithdraw => v1beta1::MsgWithdrawResponse
     }
 
+    fn_execute! {
+        pub create_spot_market_order: v1beta1::MsgCreateSpotMarketOrder => v1beta1::MsgCreateSpotMarketOrderResponse
+    }
+
     fn_query! {
         pub query_spot_markets ["/injective.exchange.v1beta1.Query/SpotMarkets"]: v1beta1::QuerySpotMarketsRequest => v1beta1::QuerySpotMarketsResponse
     }
