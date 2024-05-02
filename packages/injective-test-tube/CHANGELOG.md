@@ -5,13 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased] - yyyy-mm-dd
-
-### Added
+## 1.2.0 - 2024-02-05
 
 ### Changed
 
-### Fixed
+- Updated:
+  - injective-std, interfaces changed for some modules
 
 ## [1.1.7] - 2024-01-12
 

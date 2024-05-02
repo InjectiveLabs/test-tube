@@ -234,6 +234,8 @@ mod tests {
         let msg = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "newdenom".to_string(),
+            name: "denom".to_owned(),
+            symbol: "DNM".to_owned(),
         };
 
         let res: ExecuteResponse<MsgCreateDenomResponse> = app
@@ -250,6 +252,8 @@ mod tests {
         let msg = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "newerdenom".to_string(),
+            name: "newer denom".to_owned(),
+            symbol: "NDNM".to_owned(),
         };
 
         let res: ExecuteResponse<MsgCreateDenomResponse> = app
@@ -266,11 +270,15 @@ mod tests {
         let msg = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "multidenom_1".to_string(),
+            name: "multi denom 1".to_owned(),
+            symbol: "MDNM".to_owned(),
         };
 
         let msg_2 = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "multidenom_2".to_string(),
+            name: "multi denom 2".to_owned(),
+            symbol: "MDNM2".to_owned(),
         };
 
         assert_eq!(app.get_block_height(), 4i64);
@@ -296,16 +304,22 @@ mod tests {
         let msg = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "multidenom_3".to_string(),
+            name: "multi denom 3".to_owned(),
+            symbol: "MDNM3".to_owned(),
         };
 
         let msg_2 = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "multidenom_4".to_string(),
+            name: "multi denom 4".to_owned(),
+            symbol: "MDNM4".to_owned(),
         };
 
         let msg_3 = MsgCreateDenom {
             sender: acc_2.address(),
             subdenom: "multidenom_5".to_string(),
+            name: "multi denom 5".to_owned(),
+            symbol: "MDMA".to_owned(),
         };
 
         let res: Vec<ExecuteResponse<MsgCreateDenomResponse>> = app
