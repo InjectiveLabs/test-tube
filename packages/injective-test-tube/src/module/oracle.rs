@@ -1,8 +1,8 @@
 use injective_std::types::injective::oracle::v1beta1::{
-    MsgRelayPriceFeedPrice, MsgRelayPriceFeedPriceResponse, MsgRelayPythPrices,
-    MsgRelayPythPricesResponse, QueryModuleStateRequest, QueryModuleStateResponse,
-    QueryOraclePriceRequest, QueryOraclePriceResponse, QueryPythPriceRequest,
-    QueryPythPriceResponse,
+    MsgRelayBandRates, MsgRelayBandRatesResponse, MsgRelayPriceFeedPrice,
+    MsgRelayPriceFeedPriceResponse, MsgRelayPythPrices, MsgRelayPythPricesResponse,
+    QueryModuleStateRequest, QueryModuleStateResponse, QueryOraclePriceRequest,
+    QueryOraclePriceResponse, QueryPythPriceRequest, QueryPythPriceResponse,
 };
 use test_tube_inj::module::Module;
 use test_tube_inj::runner::Runner;
@@ -22,6 +22,10 @@ impl<'a, R> Oracle<'a, R>
 where
     R: Runner<'a>,
 {
+    fn_execute! {
+        pub relay_band_rates: MsgRelayBandRates => MsgRelayBandRatesResponse
+    }
+
     fn_execute! {
         pub relay_price_feed: MsgRelayPriceFeedPrice => MsgRelayPriceFeedPriceResponse
     }

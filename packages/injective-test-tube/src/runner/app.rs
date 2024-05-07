@@ -372,6 +372,72 @@ mod tests {
     }
 
     #[test]
+    fn test_wasm_migrate() {
+        use cosmwasm_std::Empty;
+        use cw1_whitelist::msg::*;
+
+        let app = InjectiveTestApp::default();
+        let accs = app
+            .init_accounts(
+                &[
+                    Coin::new(1_000_000_000_000, "uatom"),
+                    Coin::new(1_000_000_000_000, "inj"),
+                ],
+                1,
+            )
+            .unwrap();
+        let admin = &accs[0];
+
+        let wasm = Wasm::new(&app);
+        let wasm_byte_code = std::fs::read("./test_artifacts/cw1_subkeys.wasm").unwrap();
+        let code_id = wasm
+            .store_code(&wasm_byte_code, None, admin)
+            .unwrap()
+            .data
+            .code_id;
+        assert_eq!(code_id, 1);
+
+        // initialize admins and check if the state is correct
+        let init_admins = vec![admin.address()];
+        let contract_addr = wasm
+            .instantiate(
+                code_id,
+                &InstantiateMsg {
+                    admins: init_admins.clone(),
+                    mutable: true,
+                },
+                Some(&admin.address()),
+                Some("Test label"),
+                &[],
+                admin,
+            )
+            .unwrap()
+            .data
+            .address;
+        let admin_list = wasm
+            .query::<QueryMsg, AdminListResponse>(&contract_addr, &QueryMsg::AdminList {})
+            .unwrap();
+        assert_eq!(admin_list.admins, init_admins);
+        assert!(admin_list.mutable);
+
+        let code_id = wasm
+            .store_code(&wasm_byte_code, None, admin)
+            .unwrap()
+            .data
+            .code_id;
+        assert_eq!(code_id, 2);
+
+        wasm.migrate(code_id, &contract_addr, &Empty {}, admin)
+            .unwrap();
+
+        let admin_list = wasm
+            .query::<QueryMsg, AdminListResponse>(&contract_addr, &QueryMsg::AdminList {})
+            .unwrap();
+        assert_eq!(admin_list.admins, init_admins);
+        assert!(admin_list.mutable);
+    }
+
+    #[test]
     fn test_wasm_execute_and_query() {
         use cw1_whitelist::msg::*;
 
@@ -407,7 +473,7 @@ mod tests {
                     mutable: true,
                 },
                 Some(&admin.address()),
-                None,
+                Some("Test label"),
                 &[],
                 admin,
             )
