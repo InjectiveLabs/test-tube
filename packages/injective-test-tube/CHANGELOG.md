@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.2.0-d0e5f735acc244f35a4f3b856f293277c8ee227e] - 2024-05-07
+
+### Added
+
+### Changed
+
+- Updated:
+  - to injective-core@d0e5f735acc244f35a4f3b856f293277c8ee227e
+
 ## [1.1.7] - 2024-01-12
 
 ### Added
