@@ -82,7 +82,7 @@ impl InjectiveTestApp {
     pub fn init_account(&self, coins: &[Coin]) -> RunnerResult<SigningAccount> {
         self.inner.init_account(coins)
     }
-    /// Convinience function to create multiple accounts with the same
+    /// Convenience function to create multiple accounts with the same
     /// Initial coins balance
     pub fn init_accounts(&self, coins: &[Coin], count: u64) -> RunnerResult<Vec<SigningAccount>> {
         self.inner.init_accounts(coins, count)
@@ -234,6 +234,8 @@ mod tests {
         let msg = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "newdenom".to_string(),
+            name: "token_name".to_owned(),
+            symbol: "SYM".to_owned(),
         };
 
         let res: ExecuteResponse<MsgCreateDenomResponse> = app
@@ -246,10 +248,12 @@ mod tests {
             &format!("factory/{}/{}", &addr, "newdenom")
         );
 
-        // execute on more time to excercise account sequence
+        // execute on more time to exercise account sequence
         let msg = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "newerdenom".to_string(),
+            name: "token_name".to_owned(),
+            symbol: "SYM".to_owned(),
         };
 
         let res: ExecuteResponse<MsgCreateDenomResponse> = app
@@ -262,15 +266,19 @@ mod tests {
             &format!("factory/{}/{}", &addr, "newerdenom")
         );
 
-        // execute on more time to excercise account sequence
+        // execute on more time to exercise account sequence
         let msg = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "multidenom_1".to_string(),
+            name: "token_name".to_owned(),
+            symbol: "SYM".to_owned(),
         };
 
         let msg_2 = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "multidenom_2".to_string(),
+            name: "token_name".to_owned(),
+            symbol: "SYM".to_owned(),
         };
 
         assert_eq!(app.get_block_height(), 4i64);
@@ -292,20 +300,26 @@ mod tests {
             .unwrap();
         assert_eq!(app.get_block_height(), 6i64);
 
-        // execute on more time to excercise account sequence
+        // execute on more time to exercise account sequence
         let msg = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "multidenom_3".to_string(),
+            name: "token_name".to_owned(),
+            symbol: "SYM".to_owned(),
         };
 
         let msg_2 = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "multidenom_4".to_string(),
+            name: "token_name".to_owned(),
+            symbol: "SYM".to_owned(),
         };
 
         let msg_3 = MsgCreateDenom {
             sender: acc_2.address(),
             subdenom: "multidenom_5".to_string(),
+            name: "token_name".to_owned(),
+            symbol: "SYM".to_owned(),
         };
 
         let res: Vec<ExecuteResponse<MsgCreateDenomResponse>> = app

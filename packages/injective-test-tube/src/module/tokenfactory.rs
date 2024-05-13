@@ -88,6 +88,8 @@ mod tests {
                 MsgCreateDenom {
                     sender: signer.address(),
                     subdenom: subdenom.to_owned(),
+                    name: "token_name".to_owned(),
+                    symbol: "SYM".to_owned(),
                 },
                 &signer,
             )
