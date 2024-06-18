@@ -178,7 +178,6 @@ mod tests {
                     quote_denom: "usdt".to_owned(),
                     min_price_tick_size: "10000".to_owned(),
                     min_quantity_tick_size: "100000".to_owned(),
-                    min_notional: "1000000000000000000".to_owned(),
                 },
                 &signer,
             )
@@ -193,7 +192,6 @@ mod tests {
                     quote_denom: "usdt".to_owned(),
                     min_price_tick_size: "10000".to_owned(),
                     min_quantity_tick_size: "100000".to_owned(),
-                    min_notional: "1000000000000000000".to_owned(),
                 },
                 &signer,
             )
