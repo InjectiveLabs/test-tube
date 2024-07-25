@@ -1,10 +1,6 @@
-use cosmrs::Any;
-
 use cosmwasm_std::Coin;
-
 use prost::Message;
 use test_tube_inj::account::SigningAccount;
-
 use test_tube_inj::runner::result::{RunnerExecuteResult, RunnerResult};
 use test_tube_inj::runner::Runner;
 use test_tube_inj::BaseApp;
@@ -153,7 +149,7 @@ mod tests {
         },
     };
 
-    use crate::module::{TokenFactory, Wasm};
+    use crate::module::Wasm;
     use crate::runner::app::InjectiveTestApp;
     use crate::Bank;
     use test_tube_inj::account::{Account, FeeSetting};
