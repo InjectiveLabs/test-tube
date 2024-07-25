@@ -3,25 +3,25 @@ use std::ffi::CString;
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine as _;
 use cosmrs::crypto::secp256k1::SigningKey;
-use cosmrs::proto::tendermint::v0_37::abci::{RequestDeliverTx, ResponseDeliverTx};
+use cosmrs::proto::tendermint::v0_38::abci::ResponseFinalizeBlock;
+use cosmrs::tx;
 use cosmrs::tx::{Fee, SignerInfo};
-use cosmrs::{tx, Any};
 use cosmwasm_std::Coin;
 use prost::Message;
 
 use crate::account::{Account, FeeSetting, SigningAccount};
 use crate::bindings::{
-    AccountNumber, AccountSequence, BeginBlock, EnableIncreasingBlockTimeInEndBlocker, EndBlock,
-    Execute, GetBlockHeight, GetBlockTime, GetParamSet, GetValidatorAddress,
-    GetValidatorPrivateKey, IncreaseTime, InitAccount, InitTestEnv, Query, SetParamSet, Simulate,
+    AccountNumber, AccountSequence, FinalizeBlock, GetBlockHeight, GetBlockTime, GetParamSet,
+    GetValidatorAddress, GetValidatorPrivateKey, IncreaseTime, InitAccount, InitTestEnv, Query,
+    Simulate,
 };
+use crate::redefine_as_go_string;
 use crate::runner::error::{DecodeError, EncodeError, RunnerError};
 use crate::runner::result::RawResult;
-use crate::runner::result::{RunnerExecuteResult, RunnerExecuteResultMult, RunnerResult};
+use crate::runner::result::{RunnerExecuteResult, RunnerResult};
 use crate::runner::Runner;
-use crate::{redefine_as_go_string, ExecuteResponse};
 
-pub const OSMOSIS_MIN_GAS_PRICE: u128 = 2_500;
+pub const INJECTIVE_MIN_GAS_PRICE: u128 = 2_500;
 
 #[derive(Debug, PartialEq)]
 pub struct BaseApp {
@@ -72,7 +72,7 @@ impl BaseApp {
     /// Get the first validator private key
     pub fn get_first_validator_private_key(&self) -> RunnerResult<String> {
         let pkey = unsafe {
-            let pkey = GetValidatorPrivateKey(self.id);
+            let pkey = GetValidatorPrivateKey(self.id, 0);
             CString::from_raw(pkey)
         }
         .to_str()
@@ -89,12 +89,14 @@ impl BaseApp {
         gas_adjustment: f64,
     ) -> RunnerResult<SigningAccount> {
         let pkey = unsafe {
-            let pkey = GetValidatorPrivateKey(self.id);
+            let pkey = GetValidatorPrivateKey(self.id, 0);
             CString::from_raw(pkey)
         }
         .to_str()
         .map_err(DecodeError::Utf8Error)?
         .to_string();
+
+        println!("pkey: {:?}", pkey);
 
         let secp256k1_priv = BASE64_STANDARD
             .decode(pkey)
@@ -106,7 +108,7 @@ impl BaseApp {
             "inj".to_string(),
             signing_key,
             FeeSetting::Auto {
-                gas_price: Coin::new(OSMOSIS_MIN_GAS_PRICE, denom),
+                gas_price: Coin::new(INJECTIVE_MIN_GAS_PRICE, denom),
                 gas_adjustment,
             },
         );
@@ -134,10 +136,12 @@ impl BaseApp {
         let coins_json = serde_json::to_string(&coins).map_err(EncodeError::JsonEncodeError)?;
         redefine_as_go_string!(coins_json);
 
+        let empty_tx = "".to_string();
+        redefine_as_go_string!(empty_tx);
+
         let base64_priv = unsafe {
-            BeginBlock(self.id);
             let addr = InitAccount(self.id, coins_json);
-            EndBlock(self.id);
+            FinalizeBlock(self.id, empty_tx);
             CString::from_raw(addr)
         }
         .to_str()
@@ -157,12 +161,12 @@ impl BaseApp {
             self.address_prefix.clone(),
             signing_key,
             FeeSetting::Auto {
-                gas_price: Coin::new(OSMOSIS_MIN_GAS_PRICE, self.fee_denom.clone()),
+                gas_price: Coin::new(INJECTIVE_MIN_GAS_PRICE, self.fee_denom.clone()),
                 gas_adjustment: self.default_gas_adjustment,
             },
         ))
     }
-    /// Convinience function to create multiple accounts with the same
+    /// Convenience function to create multiple accounts with the same
     /// Initial coins balance
     pub fn init_accounts(&self, coins: &[Coin], count: u64) -> RunnerResult<Vec<SigningAccount>> {
         (0..count).map(|_| self.init_account(coins)).collect()
@@ -223,7 +227,7 @@ impl BaseApp {
         let zero_fee = Fee::from_amount_and_gas(
             cosmrs::Coin {
                 denom: self.fee_denom.parse().unwrap(),
-                amount: OSMOSIS_MIN_GAS_PRICE,
+                amount: INJECTIVE_MIN_GAS_PRICE,
             },
             0u64,
         );
@@ -269,40 +273,6 @@ impl BaseApp {
         res
     }
 
-    /// Ensure that all execution that happens in `execution` happens in a block
-    /// and end block properly, no matter it suceeds or fails.
-    unsafe fn run_block<T, E>(&self, execution: impl Fn() -> Result<T, E>) -> Result<T, E> {
-        unsafe { BeginBlock(self.id) };
-        match execution() {
-            ok @ Ok(_) => {
-                unsafe { EndBlock(self.id) };
-                ok
-            }
-            err @ Err(_) => {
-                unsafe { EndBlock(self.id) };
-                err
-            }
-        }
-    }
-
-    /// Set parameter set for a given subspace.
-    pub fn set_param_set(&self, subspace: &str, pset: impl Into<Any>) -> RunnerResult<()> {
-        unsafe {
-            BeginBlock(self.id);
-            let pset = Message::encode_to_vec(&pset.into());
-            let pset = BASE64_STANDARD.encode(pset);
-            redefine_as_go_string!(pset);
-            redefine_as_go_string!(subspace);
-            let res = SetParamSet(self.id, subspace, pset);
-
-            EndBlock(self.id);
-
-            // returns empty bytes if success
-            RawResult::from_non_null_ptr(res).into_result()?;
-            Ok(())
-        }
-    }
-
     /// Get parameter set for a given subspace.
     pub fn get_param_set<P: Message + Default>(
         &self,
@@ -317,11 +287,6 @@ impl BaseApp {
             let pset = P::decode(pset.as_slice()).map_err(DecodeError::ProtoDecodeError)?;
             Ok(pset)
         }
-    }
-
-    // Block time will be incremented in End Blocker instead of Begin Blocker. Use with caution!
-    pub fn enable_increasing_block_time_in_end_blocker(&self) {
-        unsafe { EnableIncreasingBlockTimeInEndBlocker(self.id) }
     }
 }
 
@@ -360,105 +325,31 @@ impl<'a> Runner<'a> for BaseApp {
         R: ::prost::Message + Default,
     {
         unsafe {
-            self.run_block(|| {
-                let fee = match &signer.fee_setting() {
-                    FeeSetting::Auto { .. } => self.estimate_fee(msgs.clone(), signer)?,
-                    FeeSetting::Custom { amount, gas_limit } => Fee::from_amount_and_gas(
-                        cosmrs::Coin {
-                            denom: amount.denom.parse().unwrap(),
-                            amount: amount.amount.to_string().parse().unwrap(),
-                        },
-                        *gas_limit,
-                    ),
-                };
+            let fee = match &signer.fee_setting() {
+                FeeSetting::Auto { .. } => self.estimate_fee(msgs.clone(), signer)?,
+                FeeSetting::Custom { amount, gas_limit } => Fee::from_amount_and_gas(
+                    cosmrs::Coin {
+                        denom: amount.denom.parse().unwrap(),
+                        amount: amount.amount.to_string().parse().unwrap(),
+                    },
+                    *gas_limit,
+                ),
+            };
 
-                let tx = self.create_signed_tx(msgs.clone(), signer, fee)?;
-                let mut buf = Vec::new();
-                RequestDeliverTx::encode(&RequestDeliverTx { tx: tx.into() }, &mut buf)
-                    .map_err(EncodeError::ProtoEncodeError)?;
+            let tx = self.create_signed_tx(msgs.clone(), signer, fee)?;
+            let base64_tx_bytes = BASE64_STANDARD.encode(tx);
 
-                let base64_req = BASE64_STANDARD.encode(buf);
-                redefine_as_go_string!(base64_req);
+            redefine_as_go_string!(base64_tx_bytes);
 
-                let res = Execute(self.id, base64_req);
-                let res = RawResult::from_non_null_ptr(res).into_result()?;
+            let res = FinalizeBlock(self.id, base64_tx_bytes);
+            let res = RawResult::from_non_null_ptr(res).into_result()?;
 
-                ResponseDeliverTx::decode(res.as_slice())
-                    .unwrap()
-                    .try_into()
-            })
+            let res = ResponseFinalizeBlock::decode(res.as_slice())
+                .unwrap()
+                .try_into();
+
+            res
         }
-    }
-
-    fn execute_single_block<M, R>(
-        &self,
-        msgs: &[(M, &str, &SigningAccount)],
-    ) -> RunnerExecuteResultMult<R>
-    where
-        M: ::prost::Message,
-        R: ::prost::Message + Default,
-    {
-        let mut responses: Vec<ExecuteResponse<R>> = vec![];
-        unsafe {
-            BeginBlock(self.id);
-
-            let mut fees: Vec<Fee> = vec![];
-            // first estimate all fees
-            for msg in msgs.iter() {
-                let signer = msg.2;
-
-                let mut buf = Vec::new();
-                M::encode(&msg.0, &mut buf).map_err(EncodeError::ProtoEncodeError)?;
-
-                let msg = vec![cosmrs::Any {
-                    type_url: msg.1.to_string(),
-                    value: buf,
-                }];
-
-                let fee = match &signer.fee_setting() {
-                    FeeSetting::Auto { .. } => self.estimate_fee(msg.clone(), signer)?,
-                    FeeSetting::Custom { amount, gas_limit } => Fee::from_amount_and_gas(
-                        cosmrs::Coin {
-                            denom: amount.denom.parse().unwrap(),
-                            amount: amount.amount.to_string().parse().unwrap(),
-                        },
-                        *gas_limit,
-                    ),
-                };
-                fees.push(fee);
-            }
-
-            // then execute all messages
-            for (idx, msg) in msgs.iter().enumerate() {
-                let signer = msg.2;
-                let fee = &fees[idx];
-
-                let mut buf = Vec::new();
-                M::encode(&msg.0, &mut buf).map_err(EncodeError::ProtoEncodeError)?;
-
-                let msg = vec![cosmrs::Any {
-                    type_url: msg.1.to_string(),
-                    value: buf,
-                }];
-
-                let tx = self.create_signed_tx(msg.clone(), signer, fee.clone())?;
-                let mut buf = Vec::new();
-                RequestDeliverTx::encode(&RequestDeliverTx { tx: tx.into() }, &mut buf)
-                    .map_err(EncodeError::ProtoEncodeError)?;
-
-                let base64_req = BASE64_STANDARD.encode(buf);
-                redefine_as_go_string!(base64_req);
-
-                let res = Execute(self.id, base64_req);
-                let res = RawResult::from_non_null_ptr(res).into_result()?;
-                let res = ResponseDeliverTx::decode(res.as_slice()).unwrap();
-
-                responses.push(res.try_into()?);
-            }
-
-            EndBlock(self.id);
-        }
-        Ok(responses)
     }
 
     fn query<Q, R>(&self, path: &str, q: &Q) -> RunnerResult<R>

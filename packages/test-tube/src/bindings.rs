@@ -215,10 +215,7 @@ extern "C" {
     pub fn InitAccount(envId: GoUint64, coinsJson: GoString) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
-    pub fn BeginBlock(envId: GoUint64);
-}
-extern "C" {
-    pub fn EndBlock(envId: GoUint64);
+    pub fn FinalizeBlock(envId: GoUint64, tx: GoString) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
     pub fn IncreaseTime(envId: GoUint64, seconds: GoInt64);
@@ -260,7 +257,7 @@ extern "C" {
     pub fn GetValidatorAddress(envId: GoUint64, n: GoInt32) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
-    pub fn GetValidatorPrivateKey(envId: GoUint64) -> *mut ::std::os::raw::c_char;
+    pub fn GetValidatorPrivateKey(envId: GoUint64, n: GoInt32) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
     pub fn GetBlockTime(envId: GoUint64) -> GoInt64;
@@ -269,5 +266,5 @@ extern "C" {
     pub fn GetBlockHeight(envId: GoUint64) -> GoInt64;
 }
 extern "C" {
-    pub fn EnableIncreasingBlockTimeInEndBlocker(envId: GoUint64);
+    pub fn CleanUp(envId: GoUint64);
 }
