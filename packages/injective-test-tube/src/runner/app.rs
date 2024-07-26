@@ -211,6 +211,7 @@ mod tests {
             subdenom: "newdenom".to_string(),
             name: "token_name".to_owned(),
             symbol: "SYM".to_owned(),
+            decimals: 6,
         };
 
         let res: ExecuteResponse<MsgCreateDenomResponse> = app
@@ -229,6 +230,7 @@ mod tests {
             subdenom: "newerdenom".to_string(),
             name: "token_name".to_owned(),
             symbol: "SYM".to_owned(),
+            decimals: 6,
         };
 
         let res: ExecuteResponse<MsgCreateDenomResponse> = app
@@ -247,6 +249,7 @@ mod tests {
             subdenom: "multidenom_1".to_string(),
             name: "token_name".to_owned(),
             symbol: "SYM".to_owned(),
+            decimals: 6,
         };
 
         let msg_2 = MsgCreateDenom {
@@ -254,6 +257,7 @@ mod tests {
             subdenom: "multidenom_2".to_string(),
             name: "token_name".to_owned(),
             symbol: "SYM".to_owned(),
+            decimals: 6,
         };
 
         assert_eq!(app.get_block_height(), 4i64);
@@ -458,6 +462,7 @@ mod tests {
             .query_all_balances(&QueryAllBalancesRequest {
                 address: bob.address(),
                 pagination: None,
+                resolve_denom: false,
             })
             .unwrap()
             .balances

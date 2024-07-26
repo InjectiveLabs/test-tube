@@ -90,6 +90,7 @@ mod tests {
                     subdenom: subdenom.to_owned(),
                     name: "token_name".to_owned(),
                     symbol: "SYM".to_owned(),
+                    decimals: 6,
                 },
                 &signer,
             )

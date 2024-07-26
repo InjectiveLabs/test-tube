@@ -182,6 +182,7 @@ mod tests {
                 oracle_type: 2i32,
                 base: "inj".to_string(),
                 quote: "usdt".to_string(),
+                scaling_options: None,
             })
             .unwrap()
             .price_pair_state
@@ -256,6 +257,7 @@ mod tests {
                     metadata: "".to_string(),
                     title: "Update params".to_string(),
                     summary: "Basically updating the params".to_string(),
+                    expedited: false,
                 },
                 &validator,
             )
