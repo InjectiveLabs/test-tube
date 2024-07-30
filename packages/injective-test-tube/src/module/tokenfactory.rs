@@ -112,7 +112,10 @@ mod tests {
 
         // TODO mint new denom
         let coin: injective_std::types::cosmos::base::v1beta1::Coin =
-            Coin::new(1000000000, denom.clone()).into();
+            injective_std::types::cosmos::base::v1beta1::Coin {
+                amount: "1000000000".to_string(),
+                denom: denom.to_owned(),
+            };
         tokenfactory
             .mint(
                 MsgMint {
