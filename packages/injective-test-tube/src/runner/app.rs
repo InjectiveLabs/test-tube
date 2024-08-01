@@ -296,7 +296,7 @@ mod tests {
         assert_eq!(denom_creation_fee.len(), 1);
         assert_eq!(
             denom_creation_fee.first().unwrap().amount,
-            "10_000_000_000_000_000_000".to_string()
+            "10000000000000000000".to_string()
         );
         assert_eq!(denom_creation_fee.first().unwrap().denom, "inj".to_string());
     }
@@ -439,7 +439,7 @@ mod tests {
     #[test]
     fn test_custom_fee() {
         let app = InjectiveTestApp::default();
-        let initial_balance = 1_000_000_000_000;
+        let initial_balance = 1_000_000_000_000u128;
         let alice = app.init_account(&coins(initial_balance, "inj")).unwrap();
         let bob = app.init_account(&coins(initial_balance, "inj")).unwrap();
 

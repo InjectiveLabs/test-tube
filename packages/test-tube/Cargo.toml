@@ -4,7 +4,7 @@ edition     = "2021"
 license     = "MIT OR Apache-2.0"
 name        = "test-tube-inj"
 repository  = "https://github.com/InjectiveLabs/test-tube"
-version     = "2.0.0"
+version     = "2.0.1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
