@@ -5,6 +5,7 @@ mod runner;
 
 pub use cosmrs;
 pub use injective_cosmwasm;
+pub use injective_std;
 
 pub use module::*;
 pub use runner::app::InjectiveTestApp;

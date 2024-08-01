@@ -10,36 +10,33 @@ import (
 
 	// tendermint
 
-	dbm "github.com/cometbft/cometbft-db"
+	"cosmossdk.io/log"
+	"cosmossdk.io/math"
+
 	abci "github.com/cometbft/cometbft/abci/types"
-	"github.com/cometbft/cometbft/libs/log"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	tmtypes "github.com/cometbft/cometbft/types"
+	dbm "github.com/cosmos/cosmos-db"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
-
-	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
-	"github.com/cosmos/cosmos-sdk/server"
 
-	"github.com/cosmos/cosmos-sdk/testutil/mock"
+	"github.com/cosmos/cosmos-sdk/server"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	govv1types "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 
-	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
-	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-
 	// wasmd
-	"github.com/CosmWasm/wasmd/x/wasm"
+
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 
 	// injective
 	"github.com/InjectiveLabs/injective-core/injective-chain/app"
+	injcodectypes "github.com/InjectiveLabs/injective-core/injective-chain/codec/types"
 	exchangetypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/exchange/types"
 	tokenfactorytypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/tokenfactory/types"
 	wasmxtypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/wasmx/types"
@@ -49,12 +46,14 @@ type TestEnv struct {
 	App                *app.InjectiveApp
 	Ctx                sdk.Context
 	ParamTypesRegistry ParamTypeRegistry
+	ValPrivs           []*secp256k1.PrivKey
 	Validator          []byte
-	IncreaseBlockTimeInEndBlocker bool
+	NodeHome           string
 }
 
 // DebugAppOptions is a stub implementing AppOptions
-type DebugAppOptions struct{}
+type DebugAppOptions struct {
+}
 
 // Get implements AppOptions
 func (ao DebugAppOptions) Get(o string) interface{} {
@@ -64,58 +63,34 @@ func (ao DebugAppOptions) Get(o string) interface{} {
 	return nil
 }
 
-func SetupInjectiveApp() (*app.InjectiveApp, []byte) {
+func NewInjectiveApp(nodeHome string) *app.InjectiveApp {
 	db := dbm.NewMemDB()
-	encCfg := app.MakeEncodingConfig()
 
-	appInstance := app.NewInjectiveApp(
+	return app.NewInjectiveApp(
 		log.NewNopLogger(),
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		0,
-		encCfg,
-		DebugAppOptions{},
+		simtestutil.NewAppOptionsWithFlagHome(nodeHome),
 		baseapp.SetChainID("injective-777"),
 	)
+}
 
-	// validator keys
-	validatorKey := secp256k1.GenPrivKey()
-	pval := mock.PV{PrivKey: validatorKey}
-	conval := mock.PV{PrivKey: ed25519.GenPrivKey()}
-	pubKey, err := pval.GetPubKey()
-	requireNoErr(err)
+func InitChain(appInstance *app.InjectiveApp) (sdk.Context, secp256k1.PrivKey) {
+	sdk.DefaultBondDenom = "inj"
+	genesisState, valPriv := GenesisStateWithValSet(appInstance)
 
-	// create validator set with single validator
-	validator := tmtypes.NewValidator(pubKey, 1)
-	conPubKey, err := conval.GetPubKey()
-	validator.PubKey = conPubKey
-
-	valSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
-
-	// generate genesis account
-	senderPrivKey := ed25519.GenPrivKey()
-	acc := authtypes.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), senderPrivKey.PubKey(), 0, 0)
-	balance := banktypes.Balance{
-		Address: acc.GetAddress().String(),
-		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100000000000000))),
-	}
-
-	genesisState := app.NewDefaultGenesisState()
-	genesisState, err = simtestutil.GenesisStateWithValSet(appInstance.AppCodec(), genesisState, valSet, []authtypes.GenesisAccount{acc}, balance)
-	requireNoErr(err)
+	encCfg := injcodectypes.MakeEncodingConfig()
 
 	// Set up Wasm genesis state
-	wasmGen := wasm.GenesisState{
+	wasmGen := wasmtypes.GenesisState{
 		Params: wasmtypes.Params{
 			// Allow store code without gov
 			CodeUploadAccess:             wasmtypes.AllowEverybody,
 			InstantiateDefaultPermission: wasmtypes.AccessTypeEverybody,
 		},
 	}
-	genesisState[wasm.ModuleName] = encCfg.Marshaler.MustMarshalJSON(&wasmGen)
+	genesisState[wasmtypes.ModuleName] = encCfg.Codec.MustMarshalJSON(&wasmGen)
 
 	// Set up governance genesis state
 	govParams := govv1types.DefaultParams()
@@ -129,7 +104,7 @@ func SetupInjectiveApp() (*app.InjectiveApp, []byte) {
 		Params:             &govParams,
 	}
 
-	genesisState[govtypes.ModuleName] = encCfg.Marshaler.MustMarshalJSON(&govGen)
+	genesisState[govtypes.ModuleName] = encCfg.Codec.MustMarshalJSON(&govGen)
 
 	// Set up exchange genesis state
 	exchangeParams := exchangetypes.DefaultParams()
@@ -137,7 +112,7 @@ func SetupInjectiveApp() (*app.InjectiveApp, []byte) {
 	exchangeGen := exchangetypes.GenesisState{
 		Params: exchangeParams,
 	}
-	genesisState[exchangetypes.ModuleName] = encCfg.Marshaler.MustMarshalJSON(&exchangeGen)
+	genesisState[exchangetypes.ModuleName] = encCfg.Codec.MustMarshalJSON(&exchangeGen)
 
 	// Set up wasmx genesis state
 	wasmxGen := wasmxtypes.GenesisState{
@@ -148,51 +123,70 @@ func SetupInjectiveApp() (*app.InjectiveApp, []byte) {
 			MinGasPrice:           1000,
 		},
 	}
-	genesisState[wasmxtypes.ModuleName] = encCfg.Marshaler.MustMarshalJSON(&wasmxGen)
+	genesisState[wasmxtypes.ModuleName] = encCfg.Codec.MustMarshalJSON(&wasmxGen)
 
 	stateBytes, err := json.MarshalIndent(genesisState, "", " ")
 
 	requireNoErr(err)
 
-	consensusParams := app.DefaultConsensusParams
+	consensusParams := simtestutil.DefaultConsensusParams
+	consensusParams.Block = &tmproto.BlockParams{
+		MaxBytes: 22020096,
+		MaxGas:   -1,
+	}
 
 	// replace sdk.DefaultDenom with "inj", a bit of a hack, needs improvement
 	stateBytes = []byte(strings.Replace(string(stateBytes), "\"stake\"", "\"inj\"", -1))
 
-	appInstance.InitChain(
-		abci.RequestInitChain{
+	_, err = appInstance.InitChain(
+		&abci.RequestInitChain{
 			ChainId:         "injective-777",
 			Validators:      []abci.ValidatorUpdate{},
 			ConsensusParams: consensusParams,
 			AppStateBytes:   stateBytes,
 		},
 	)
+	requireNoErr(err)
 
-	return appInstance, validatorKey.Bytes()
+	ctx := appInstance.NewUncachedContext(false, tmproto.Header{Height: 0, ChainID: "injective-777", Time: time.Now().UTC()})
+
+	return ctx, valPriv
 }
 
-func (env *TestEnv) BeginNewBlock(timeIncreaseSeconds uint64) {
-	var valAddr []byte
+func GenesisStateWithValSet(appInstance *app.InjectiveApp) (app.GenesisState, secp256k1.PrivKey) {
+	privVal := NewPV()
+	pubKey, _ := privVal.GetPubKey()
+	validator := tmtypes.NewValidator(pubKey, 1)
+	valSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
 
-	validators := env.App.StakingKeeper.GetAllValidators(env.Ctx)
+	// generate genesis account
+	senderPrivKey := secp256k1.GenPrivKey()
+	senderPrivKey.PubKey().Address()
+	acc := authtypes.NewBaseAccountWithAddress(senderPrivKey.PubKey().Address().Bytes())
 
-	if len(validators) >= 1 {
-		valAddrFancy, err := validators[0].GetConsAddr()
-		requireNoErr(err)
-		valAddr = valAddrFancy.Bytes()
+	//////////////////////
+	// balances := []banktypes.Balance{}
+	balance := banktypes.Balance{
+		Address: acc.GetAddress().String(),
+		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(100000000000000))),
+	}
+	genesisState := app.NewDefaultGenesisState()
+	genAccs := []authtypes.GenesisAccount{acc}
+	authGenesis := authtypes.NewGenesisState(authtypes.DefaultParams(), genAccs)
+	genesisState[authtypes.ModuleName] = appInstance.AppCodec().MustMarshalJSON(authGenesis)
 
-	} else {
-		valAddrFancy := env.setupValidator(stakingtypes.Bonded)
-		validator, _ := env.App.StakingKeeper.GetValidator(env.Ctx, valAddrFancy)
-		valAddr2, _ := validator.GetConsAddr()
-		valAddr = valAddr2.Bytes()
+	genesisState, err := simtestutil.GenesisStateWithValSet(appInstance.AppCodec(), genesisState, valSet, []authtypes.GenesisAccount{acc}, balance)
+	if err != nil {
+		panic(err)
 	}
 
-	env.beginNewBlockWithProposer(valAddr, timeIncreaseSeconds)
+	return genesisState, secp256k1.PrivKey{Key: privVal.PrivKey.Bytes()}
 }
 
 func (env *TestEnv) GetValidatorAddresses() []string {
-	validators := env.App.StakingKeeper.GetAllValidators(env.Ctx)
+	validators, err := env.App.StakingKeeper.GetAllValidators(env.Ctx)
+	requireNoErr(err)
+
 	var addresses []string
 	for _, validator := range validators {
 		addresses = append(addresses, validator.OperatorAddress)
@@ -205,97 +199,12 @@ func (env *TestEnv) GetValidatorPrivateKey() []byte {
 	return env.Validator
 }
 
-// beginNewBlockWithProposer begins a new block with a proposer.
-func (env *TestEnv) beginNewBlockWithProposer(proposer sdk.ConsAddress, timeIncreaseSeconds uint64) {
-	validator, found := env.App.StakingKeeper.GetValidatorByConsAddr(env.Ctx, proposer)
-
-	if !found {
-		panic("validator not found")
+func (env *TestEnv) FundAccount(ctx sdk.Context, bankKeeper bankkeeper.Keeper, addr sdk.AccAddress, amounts sdk.Coins) error {
+	if err := bankKeeper.MintCoins(ctx, tokenfactorytypes.ModuleName, amounts); err != nil {
+		return err
 	}
 
-	valConsAddr, err := validator.GetConsAddr()
-
-	requireNoErr(err)
-
-	valAddr := valConsAddr.Bytes()
-
-	if env.IncreaseBlockTimeInEndBlocker {
-		timeIncreaseSeconds = 0
-	}
-
-	newBlockTime := env.Ctx.BlockTime().Add(time.Duration(timeIncreaseSeconds) * time.Second)
-	header := tmproto.Header{ChainID: "injective-777", Height: env.Ctx.BlockHeight() + 1, Time: newBlockTime}
-	newCtx := env.Ctx.WithBlockTime(newBlockTime).WithBlockHeight(env.Ctx.BlockHeight() + 1)
-	env.Ctx = newCtx
-	lastCommitInfo := abci.CommitInfo{
-		Votes: []abci.VoteInfo{{
-			Validator:       abci.Validator{Address: valAddr, Power: 1000},
-			SignedLastBlock: true,
-		}},
-	}
-	reqBeginBlock := abci.RequestBeginBlock{Header: header, LastCommitInfo: lastCommitInfo}
-
-	env.App.BeginBlock(reqBeginBlock)
-	env.Ctx = env.App.NewContext(false, reqBeginBlock.Header)
-}
-
-func (env *TestEnv) SetDefaultValidator(consAddr sdk.ConsAddress) {
-	signingInfo := slashingtypes.NewValidatorSigningInfo(
-		consAddr,
-		env.Ctx.BlockHeight(),
-		0,
-		time.Unix(0, 0),
-		false,
-		0,
-	)
-	env.App.SlashingKeeper.SetValidatorSigningInfo(env.Ctx, consAddr, signingInfo)
-}
-
-func (env *TestEnv) setupValidator(bondStatus stakingtypes.BondStatus) sdk.ValAddress {
-	valPk := ed25519.GenPrivKey()
-	valPub := valPk.PubKey()
-	valAddr := sdk.ValAddress(valPub.Address())
-
-	bondDenom := env.App.StakingKeeper.GetParams(env.Ctx).BondDenom
-	selfBond := sdk.NewCoins(sdk.Coin{Amount: sdk.NewInt(100), Denom: bondDenom})
-
-	err := testutil.FundAccount(env.App.BankKeeper, env.Ctx, sdk.AccAddress(valPub.Address()), selfBond)
-	requireNoErr(err)
-
-	stakingHandler := stakingkeeper.NewMsgServerImpl(env.App.StakingKeeper)
-	stakingCoin := sdk.NewCoin(bondDenom, selfBond[0].Amount)
-
-	Commission := stakingtypes.NewCommissionRates(sdk.MustNewDecFromStr("0.05"), sdk.MustNewDecFromStr("0.05"), sdk.MustNewDecFromStr("0.05"))
-	msg, err := stakingtypes.NewMsgCreateValidator(valAddr, valPub, stakingCoin, stakingtypes.Description{}, Commission, sdk.OneInt())
-	requireNoErr(err)
-
-	res, err := stakingHandler.CreateValidator(env.Ctx, msg)
-	requireNoErr(err)
-
-	requireNoNil("staking handler", res)
-
-	env.App.BankKeeper.SendCoinsFromModuleToModule(env.Ctx, stakingtypes.NotBondedPoolName, stakingtypes.BondedPoolName, sdk.NewCoins(stakingCoin))
-
-	val, found := env.App.StakingKeeper.GetValidator(env.Ctx, valAddr)
-	requireTrue("validator found", found)
-
-	val = val.UpdateStatus(bondStatus)
-	env.App.StakingKeeper.SetValidator(env.Ctx, val)
-
-	consAddr, err := val.GetConsAddr()
-	requireNoErr(err)
-
-	signingInfo := slashingtypes.NewValidatorSigningInfo(
-		consAddr,
-		env.Ctx.BlockHeight(),
-		0,
-		time.Unix(0, 0),
-		false,
-		0,
-	)
-	env.App.SlashingKeeper.SetValidatorSigningInfo(env.Ctx, consAddr, signingInfo)
-
-	return valAddr
+	return bankKeeper.SendCoinsFromModuleToAccount(ctx, tokenfactorytypes.ModuleName, addr, amounts)
 }
 
 func (env *TestEnv) SetupParamTypes() {
