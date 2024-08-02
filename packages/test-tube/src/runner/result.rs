@@ -38,7 +38,7 @@ where
             .msg_responses
             // since this tx contains exactly 1 msg
             // when getting none of them, that means error
-            .get(0)
+            .first()
             .ok_or(RunnerError::ExecuteError { msg: res.log })?;
 
         let data = R::decode(msg_data.value.as_slice()).map_err(DecodeError::ProtoDecodeError)?;
@@ -88,7 +88,7 @@ where
             .msg_responses
             // since this tx contains exactly 1 msg
             // when getting none of them, that means error
-            .get(0)
+            .first()
             .ok_or(RunnerError::ExecuteError { msg: res.log })?;
 
         let data = R::decode(msg_data.value.as_slice()).map_err(DecodeError::ProtoDecodeError)?;
@@ -148,7 +148,7 @@ where
             // the gas spend transaction as mentioned above
             // this needs some thought for supporting more than
             // one transaction per block
-            .get(0)
+            .first()
             .ok_or(RunnerError::ExecuteError {
                 msg: tx.log.clone(),
             })?;

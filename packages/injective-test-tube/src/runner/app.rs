@@ -164,7 +164,7 @@ mod tests {
             .init_accounts(&coins(100_000_000_000, "inj"), 3)
             .unwrap();
 
-        assert!(accounts.get(0).is_some());
+        assert!(accounts.first().is_some());
         assert!(accounts.get(1).is_some());
         assert!(accounts.get(2).is_some());
         assert!(accounts.get(3).is_none());
@@ -293,10 +293,12 @@ mod tests {
             .unwrap()
             .denom_creation_fee;
 
+        assert_eq!(denom_creation_fee.len(), 1);
         assert_eq!(
-            denom_creation_fee,
-            [Coin::new(10_000_000_000_000_000_000u128, "inj").into()]
-        )
+            denom_creation_fee.first().unwrap().amount,
+            "10000000000000000000".to_string()
+        );
+        assert_eq!(denom_creation_fee.first().unwrap().denom, "inj".to_string());
     }
 
     #[test]
@@ -308,8 +310,8 @@ mod tests {
         let accs = app
             .init_accounts(
                 &[
-                    Coin::new(1_000_000_000_000, "uatom"),
-                    Coin::new(1_000_000_000_000, "inj"),
+                    Coin::new(1_000_000_000_000u128, "uatom"),
+                    Coin::new(1_000_000_000_000u128, "inj"),
                 ],
                 1,
             )
@@ -373,8 +375,8 @@ mod tests {
         let accs = app
             .init_accounts(
                 &[
-                    Coin::new(1_000_000_000_000, "uatom"),
-                    Coin::new(1_000_000_000_000, "inj"),
+                    Coin::new(1_000_000_000_000u128, "uatom"),
+                    Coin::new(1_000_000_000_000u128, "inj"),
                 ],
                 2,
             )
@@ -437,11 +439,11 @@ mod tests {
     #[test]
     fn test_custom_fee() {
         let app = InjectiveTestApp::default();
-        let initial_balance = 1_000_000_000_000;
+        let initial_balance = 1_000_000_000_000u128;
         let alice = app.init_account(&coins(initial_balance, "inj")).unwrap();
         let bob = app.init_account(&coins(initial_balance, "inj")).unwrap();
 
-        let amount = Coin::new(1_000_000, "inj");
+        let amount = Coin::new(1_000_000u128, "inj");
         let gas_limit = 100_000_000;
 
         // use FeeSetting::Auto by default, so should not equal newly custom fee setting

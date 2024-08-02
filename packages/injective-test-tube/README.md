@@ -28,8 +28,8 @@ let app = InjectiveTestApp::new();
 let accs = app
     .init_accounts(
         &[
-            Coin::new(1_000_000_000_000, "usdt"),
-            Coin::new(1_000_000_000_000, "inj"),
+            Coin::new(1_000_000_000_000u128, "usdt"),
+            Coin::new(1_000_000_000_000u128, "inj"),
         ],
         2,
     )
@@ -52,8 +52,8 @@ use injective_test_tube::InjectiveTestApp;
 let app = InjectiveTestApp::new();
 
 let account = app.init_account(&[
-    Coin::new(1_000_000_000_000, "usdt"),
-    Coin::new(1_000_000_000_000, "inj"),
+    Coin::new(1_000_000_000_000u128, "usdt"),
+    Coin::new(1_000_000_000_000u128, "inj"),
 ]);
 ```
 
@@ -74,8 +74,8 @@ let app = InjectiveTestApp::new();
 let accs = app
     .init_accounts(
         &[
-            Coin::new(1_000_000_000_000, "usdt"),
-            Coin::new(1_000_000_000_000, "inj"),
+            Coin::new(1_000_000_000_000u128, "usdt"),
+            Coin::new(1_000_000_000_000u128, "inj"),
         ],
         2,
     )
@@ -110,8 +110,8 @@ let app = InjectiveTestApp::new();
 let accs = app
     .init_accounts(
         &[
-            Coin::new(1_000_000_000_000, "usdt"),
-            Coin::new(1_000_000_000_000, "inj"),
+            Coin::new(1_000_000_000_000u128, "usdt"),
+            Coin::new(1_000_000_000_000u128, "inj"),
         ],
         2,
     )
@@ -169,8 +169,8 @@ let app = InjectiveTestApp::new();
 let accs = app
     .init_accounts(
         &[
-            Coin::new(1_000_000_000_000, "usdt"),
-            Coin::new(1_000_000_000_000, "inj"),
+            Coin::new(1_000_000_000_000u128, "usdt"),
+            Coin::new(1_000_000_000_000u128, "inj"),
         ],
         2,
     )
