@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.13.0 - 2024-06-08
+
+### Changed
+
+- Updated to use `injective-core@v1.13.0`
+- Updated to use `test-tube-inj@2.0.1`
+
 ## 1.2.1 - 2024-06-06
 
 ### Changed
