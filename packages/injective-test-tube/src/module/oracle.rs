@@ -1,8 +1,8 @@
 use injective_std::types::injective::oracle::v1beta1::{
-    MsgRelayPriceFeedPrice, MsgRelayPriceFeedPriceResponse, MsgRelayPythPrices,
-    MsgRelayPythPricesResponse, QueryModuleStateRequest, QueryModuleStateResponse,
-    QueryOraclePriceRequest, QueryOraclePriceResponse, QueryPythPriceRequest,
-    QueryPythPriceResponse,
+    MsgRelayBandRates, MsgRelayBandRatesResponse, MsgRelayPriceFeedPrice,
+    MsgRelayPriceFeedPriceResponse, MsgRelayPythPrices, MsgRelayPythPricesResponse,
+    QueryModuleStateRequest, QueryModuleStateResponse, QueryOraclePriceRequest,
+    QueryOraclePriceResponse, QueryPythPriceRequest, QueryPythPriceResponse,
 };
 use test_tube_inj::module::Module;
 use test_tube_inj::runner::Runner;
@@ -22,6 +22,10 @@ impl<'a, R> Oracle<'a, R>
 where
     R: Runner<'a>,
 {
+    fn_execute! {
+        pub relay_band_rates: MsgRelayBandRates => MsgRelayBandRatesResponse
+    }
+
     fn_execute! {
         pub relay_price_feed: MsgRelayPriceFeedPrice => MsgRelayPriceFeedPriceResponse
     }
@@ -134,6 +138,8 @@ mod tests {
             )
             .unwrap();
 
+        println!("{:#?}", res);
+
         let proposal_id = res
             .events
             .iter()
@@ -176,6 +182,7 @@ mod tests {
                 oracle_type: 2i32,
                 base: "inj".to_string(),
                 quote: "usdt".to_string(),
+                scaling_options: None,
             })
             .unwrap()
             .price_pair_state
@@ -250,6 +257,7 @@ mod tests {
                     metadata: "".to_string(),
                     title: "Update params".to_string(),
                     summary: "Basically updating the params".to_string(),
+                    expedited: false,
                 },
                 &validator,
             )
