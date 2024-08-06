@@ -178,6 +178,7 @@ mod tests {
                     quote_denom: "usdt".to_owned(),
                     min_price_tick_size: "10000".to_owned(),
                     min_quantity_tick_size: "100000".to_owned(),
+                    min_notional: "1".to_owned(),
                 },
                 &signer,
             )
@@ -192,6 +193,7 @@ mod tests {
                     quote_denom: "usdt".to_owned(),
                     min_price_tick_size: "10000".to_owned(),
                     min_quantity_tick_size: "100000".to_owned(),
+                    min_notional: "1".to_owned(),
                 },
                 &signer,
             )
@@ -217,6 +219,9 @@ mod tests {
                 status: v1beta1::MarketStatus::Active.into(),
                 min_price_tick_size: "10000".to_string(),
                 min_quantity_tick_size: "100000".to_string(),
+                min_notional: "1".to_string(),
+                admin: "".to_string(),
+                admin_permissions: 0u32,
             }],
         };
         assert_eq!(spot_markets, expected_response);

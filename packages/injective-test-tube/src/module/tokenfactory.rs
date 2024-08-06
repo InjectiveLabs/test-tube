@@ -88,8 +88,9 @@ mod tests {
                 MsgCreateDenom {
                     sender: signer.address(),
                     subdenom: subdenom.to_owned(),
-                    name: "denom".to_owned(),
-                    symbol: "DNM".to_owned(),
+                    name: "token_name".to_owned(),
+                    symbol: "SYM".to_owned(),
+                    decimals: 6,
                 },
                 &signer,
             )
@@ -111,7 +112,10 @@ mod tests {
 
         // TODO mint new denom
         let coin: injective_std::types::cosmos::base::v1beta1::Coin =
-            Coin::new(1000000000, denom.clone()).into();
+            injective_std::types::cosmos::base::v1beta1::Coin {
+                amount: "1000000000".to_string(),
+                denom: denom.to_owned(),
+            };
         tokenfactory
             .mint(
                 MsgMint {

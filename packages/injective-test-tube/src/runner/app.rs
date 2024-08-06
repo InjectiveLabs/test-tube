@@ -1,11 +1,7 @@
-use cosmrs::Any;
-
 use cosmwasm_std::Coin;
-
 use prost::Message;
 use test_tube_inj::account::SigningAccount;
-
-use test_tube_inj::runner::result::{RunnerExecuteResult, RunnerExecuteResultMult, RunnerResult};
+use test_tube_inj::runner::result::{RunnerExecuteResult, RunnerResult};
 use test_tube_inj::runner::Runner;
 use test_tube_inj::BaseApp;
 
@@ -82,7 +78,7 @@ impl InjectiveTestApp {
     pub fn init_account(&self, coins: &[Coin]) -> RunnerResult<SigningAccount> {
         self.inner.init_account(coins)
     }
-    /// Convinience function to create multiple accounts with the same
+    /// Convenience function to create multiple accounts with the same
     /// Initial coins balance
     pub fn init_accounts(&self, coins: &[Coin], count: u64) -> RunnerResult<Vec<SigningAccount>> {
         self.inner.init_accounts(coins, count)
@@ -100,11 +96,6 @@ impl InjectiveTestApp {
         self.inner.simulate_tx(msgs, signer)
     }
 
-    /// Set parameter set for a given subspace.
-    pub fn set_param_set(&self, subspace: &str, pset: impl Into<Any>) -> RunnerResult<()> {
-        self.inner.set_param_set(subspace, pset)
-    }
-
     /// Get parameter set for a given subspace.
     pub fn get_param_set<P: Message + Default>(
         &self,
@@ -112,10 +103,6 @@ impl InjectiveTestApp {
         type_url: &str,
     ) -> RunnerResult<P> {
         self.inner.get_param_set(subspace, type_url)
-    }
-
-    pub fn enable_increasing_block_time_in_end_blocker(&self) {
-        self.inner.enable_increasing_block_time_in_end_blocker()
     }
 }
 
@@ -130,17 +117,6 @@ impl<'a> Runner<'a> for InjectiveTestApp {
         R: ::prost::Message + Default,
     {
         self.inner.execute_multiple(msgs, signer)
-    }
-
-    fn execute_single_block<M, R>(
-        &self,
-        msgs: &[(M, &str, &SigningAccount)],
-    ) -> RunnerExecuteResultMult<R>
-    where
-        M: ::prost::Message,
-        R: ::prost::Message + Default,
-    {
-        self.inner.execute_single_block(msgs)
     }
 
     fn query<Q, R>(&self, path: &str, q: &Q) -> RunnerResult<R>
@@ -169,12 +145,11 @@ mod tests {
     use injective_std::types::{
         cosmos::bank::v1beta1::QueryAllBalancesRequest,
         injective::tokenfactory::v1beta1::{
-            MsgCreateDenom, MsgCreateDenomResponse, QueryDenomsFromCreatorRequest,
-            QueryParamsRequest, QueryParamsResponse,
+            MsgCreateDenom, MsgCreateDenomResponse, QueryParamsRequest, QueryParamsResponse,
         },
     };
 
-    use crate::module::{TokenFactory, Wasm};
+    use crate::module::Wasm;
     use crate::runner::app::InjectiveTestApp;
     use crate::Bank;
     use test_tube_inj::account::{Account, FeeSetting};
@@ -189,7 +164,7 @@ mod tests {
             .init_accounts(&coins(100_000_000_000, "inj"), 3)
             .unwrap();
 
-        assert!(accounts.get(0).is_some());
+        assert!(accounts.first().is_some());
         assert!(accounts.get(1).is_some());
         assert!(accounts.get(2).is_some());
         assert!(accounts.get(3).is_none());
@@ -234,8 +209,9 @@ mod tests {
         let msg = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "newdenom".to_string(),
-            name: "denom".to_owned(),
-            symbol: "DNM".to_owned(),
+            name: "token_name".to_owned(),
+            symbol: "SYM".to_owned(),
+            decimals: 6,
         };
 
         let res: ExecuteResponse<MsgCreateDenomResponse> = app
@@ -248,12 +224,13 @@ mod tests {
             &format!("factory/{}/{}", &addr, "newdenom")
         );
 
-        // execute on more time to excercise account sequence
+        // execute on more time to exercise account sequence
         let msg = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "newerdenom".to_string(),
-            name: "newer denom".to_owned(),
-            symbol: "NDNM".to_owned(),
+            name: "token_name".to_owned(),
+            symbol: "SYM".to_owned(),
+            decimals: 6,
         };
 
         let res: ExecuteResponse<MsgCreateDenomResponse> = app
@@ -266,19 +243,21 @@ mod tests {
             &format!("factory/{}/{}", &addr, "newerdenom")
         );
 
-        // execute on more time to excercise account sequence
+        // execute on more time to exercise account sequence
         let msg = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "multidenom_1".to_string(),
-            name: "multi denom 1".to_owned(),
-            symbol: "MDNM".to_owned(),
+            name: "token_name".to_owned(),
+            symbol: "SYM".to_owned(),
+            decimals: 6,
         };
 
         let msg_2 = MsgCreateDenom {
             sender: acc.address(),
             subdenom: "multidenom_2".to_string(),
-            name: "multi denom 2".to_owned(),
-            symbol: "MDNM2".to_owned(),
+            name: "token_name".to_owned(),
+            symbol: "SYM".to_owned(),
+            decimals: 6,
         };
 
         assert_eq!(app.get_block_height(), 4i64);
@@ -295,74 +274,9 @@ mod tests {
 
         assert_eq!(app.get_block_height(), 5i64);
 
-        let acc_2 = app
-            .init_account(&coins(100_000_000_000_000_000_000u128, "inj")) // 100 inj
+        app.init_account(&coins(100_000_000_000_000_000_000u128, "inj")) // 100 inj
             .unwrap();
         assert_eq!(app.get_block_height(), 6i64);
-
-        // execute on more time to excercise account sequence
-        let msg = MsgCreateDenom {
-            sender: acc.address(),
-            subdenom: "multidenom_3".to_string(),
-            name: "multi denom 3".to_owned(),
-            symbol: "MDNM3".to_owned(),
-        };
-
-        let msg_2 = MsgCreateDenom {
-            sender: acc.address(),
-            subdenom: "multidenom_4".to_string(),
-            name: "multi denom 4".to_owned(),
-            symbol: "MDNM4".to_owned(),
-        };
-
-        let msg_3 = MsgCreateDenom {
-            sender: acc_2.address(),
-            subdenom: "multidenom_5".to_string(),
-            name: "multi denom 5".to_owned(),
-            symbol: "MDMA".to_owned(),
-        };
-
-        let res: Vec<ExecuteResponse<MsgCreateDenomResponse>> = app
-            .execute_single_block(&[
-                (msg, "/injective.tokenfactory.v1beta1.MsgCreateDenom", &acc),
-                (
-                    msg_2,
-                    "/injective.tokenfactory.v1beta1.MsgCreateDenom",
-                    &acc,
-                ),
-                (
-                    msg_3,
-                    "/injective.tokenfactory.v1beta1.MsgCreateDenom",
-                    &acc_2,
-                ),
-            ])
-            .unwrap();
-
-        assert_eq!(res.len(), 3);
-
-        assert_eq!(app.get_block_height(), 7i64);
-
-        let tokenfactory = TokenFactory::new(&app);
-
-        // Ensure denoms are created by acc
-        let denoms = tokenfactory
-            .query_denoms_from_creator(&QueryDenomsFromCreatorRequest {
-                creator: acc.address(),
-            })
-            .unwrap()
-            .denoms;
-
-        assert_eq!(denoms.len(), 6);
-
-        // Ensure denoms are created by acc_2
-        let denoms = tokenfactory
-            .query_denoms_from_creator(&QueryDenomsFromCreatorRequest {
-                creator: acc_2.address(),
-            })
-            .unwrap()
-            .denoms;
-
-        assert_eq!(denoms.len(), 1);
     }
 
     #[test]
@@ -379,10 +293,12 @@ mod tests {
             .unwrap()
             .denom_creation_fee;
 
+        assert_eq!(denom_creation_fee.len(), 1);
         assert_eq!(
-            denom_creation_fee,
-            [Coin::new(10_000_000_000_000_000_000u128, "inj").into()]
-        )
+            denom_creation_fee.first().unwrap().amount,
+            "10000000000000000000".to_string()
+        );
+        assert_eq!(denom_creation_fee.first().unwrap().denom, "inj".to_string());
     }
 
     #[test]
@@ -394,8 +310,8 @@ mod tests {
         let accs = app
             .init_accounts(
                 &[
-                    Coin::new(1_000_000_000_000, "uatom"),
-                    Coin::new(1_000_000_000_000, "inj"),
+                    Coin::new(1_000_000_000_000u128, "uatom"),
+                    Coin::new(1_000_000_000_000u128, "inj"),
                 ],
                 1,
             )
@@ -459,8 +375,8 @@ mod tests {
         let accs = app
             .init_accounts(
                 &[
-                    Coin::new(1_000_000_000_000, "uatom"),
-                    Coin::new(1_000_000_000_000, "inj"),
+                    Coin::new(1_000_000_000_000u128, "uatom"),
+                    Coin::new(1_000_000_000_000u128, "inj"),
                 ],
                 2,
             )
@@ -523,11 +439,11 @@ mod tests {
     #[test]
     fn test_custom_fee() {
         let app = InjectiveTestApp::default();
-        let initial_balance = 1_000_000_000_000;
+        let initial_balance = 1_000_000_000_000u128;
         let alice = app.init_account(&coins(initial_balance, "inj")).unwrap();
         let bob = app.init_account(&coins(initial_balance, "inj")).unwrap();
 
-        let amount = Coin::new(1_000_000, "inj");
+        let amount = Coin::new(1_000_000u128, "inj");
         let gas_limit = 100_000_000;
 
         // use FeeSetting::Auto by default, so should not equal newly custom fee setting
@@ -548,6 +464,7 @@ mod tests {
             .query_all_balances(&QueryAllBalancesRequest {
                 address: bob.address(),
                 pagination: None,
+                resolve_denom: false,
             })
             .unwrap()
             .balances

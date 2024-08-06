@@ -4,11 +4,10 @@ mod exchange;
 mod gov;
 mod insurance;
 mod oracle;
+mod staking;
 mod tokenfactory;
 mod wasm;
 mod wasmx;
-
-mod staking;
 
 pub use test_tube_inj::macros;
 pub use test_tube_inj::module::Module;

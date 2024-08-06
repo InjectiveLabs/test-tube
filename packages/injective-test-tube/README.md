@@ -28,8 +28,8 @@ let app = InjectiveTestApp::new();
 let accs = app
     .init_accounts(
         &[
-            Coin::new(1_000_000_000_000, "usdt"),
-            Coin::new(1_000_000_000_000, "inj"),
+            Coin::new(1_000_000_000_000u128, "usdt"),
+            Coin::new(1_000_000_000_000u128, "inj"),
         ],
         2,
     )
@@ -52,8 +52,8 @@ use injective_test_tube::InjectiveTestApp;
 let app = InjectiveTestApp::new();
 
 let account = app.init_account(&[
-    Coin::new(1_000_000_000_000, "usdt"),
-    Coin::new(1_000_000_000_000, "inj"),
+    Coin::new(1_000_000_000_000u128, "usdt"),
+    Coin::new(1_000_000_000_000u128, "inj"),
 ]);
 ```
 
@@ -74,8 +74,8 @@ let app = InjectiveTestApp::new();
 let accs = app
     .init_accounts(
         &[
-            Coin::new(1_000_000_000_000, "usdt"),
-            Coin::new(1_000_000_000_000, "inj"),
+            Coin::new(1_000_000_000_000u128, "usdt"),
+            Coin::new(1_000_000_000_000u128, "inj"),
         ],
         2,
     )
@@ -110,8 +110,8 @@ let app = InjectiveTestApp::new();
 let accs = app
     .init_accounts(
         &[
-            Coin::new(1_000_000_000_000, "usdt"),
-            Coin::new(1_000_000_000_000, "inj"),
+            Coin::new(1_000_000_000_000u128, "usdt"),
+            Coin::new(1_000_000_000_000u128, "inj"),
         ],
         2,
     )
@@ -169,8 +169,8 @@ let app = InjectiveTestApp::new();
 let accs = app
     .init_accounts(
         &[
-            Coin::new(1_000_000_000_000, "usdt"),
-            Coin::new(1_000_000_000_000, "inj"),
+            Coin::new(1_000_000_000_000u128, "usdt"),
+            Coin::new(1_000_000_000_000u128, "inj"),
         ],
         2,
     )
@@ -279,6 +279,7 @@ exchange
             quote_denom: "usdt".to_owned(),
             min_price_tick_size: "10000".to_owned(),
             min_quantity_tick_size: "100000".to_owned(),
+            min_notional: "1".to_owned(),
         },
         &signer,
     )
@@ -293,6 +294,7 @@ exchange
             quote_denom: "usdt".to_owned(),
             min_price_tick_size: "10000".to_owned(),
             min_quantity_tick_size: "100000".to_owned(),
+            min_notional: "1".to_owned(),
         },
         &signer,
     )
@@ -320,6 +322,9 @@ let expected_response = QuerySpotMarketsResponse {
         status: MarketStatus::Active.into(),
         min_price_tick_size: "10000".to_string(),
         min_quantity_tick_size: "100000".to_string(),
+        min_notional: "1".to_string(),
+        admin: "".to_string(),
+        admin_permissions: 0u32,
     }],
 };
 assert_eq!(spot_markets, expected_response);
@@ -329,18 +334,4 @@ Additional examples can be found in the [modules](./src/module/) directory.
 
 ## Versioning
 
-The version of injective-test-tube is determined by the versions of its dependencies, injective and test-tube, as well as its own changes. The version is represented in the format A.B.C, where:
-
-- A is the major version of injective,
-- B is the minor version of test-tube,
-- C is the patch number of injective-test-tube itself.
-
-When a new version of injective is released and contains breaking changes, we will also release breaking changes from test-tube if any and increment the major version of injective-test-tube. This way, it's clear that the new version of injective-test-tube is not backwards-compatible with previous versions.
-
-When adding a new feature to injective-test-tube that is backward-compatible, the minor version number will be incremented.
-
-When fixing bugs or making other changes that are `injective-test-tube` specific and backward-compatible, the patch number will be incremented.
-
-Please review the upgrade guide for upgrading the package, in case of breaking changes
-
-It is important to note that we track the version of the package independent of the version of dependencies.
+The version of injective-test-tube is determined by the version of injective-core it follows. Changes made to test-tube or injective-test-tube will be notified by a new **release** candidate marker e.g. `1.13.2-rc1`.

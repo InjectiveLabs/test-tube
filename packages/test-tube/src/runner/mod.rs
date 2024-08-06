@@ -1,7 +1,7 @@
 use cosmwasm_std::CosmosMsg;
 
 use crate::account::SigningAccount;
-use crate::runner::result::{RunnerExecuteResult, RunnerExecuteResultMult, RunnerResult};
+use crate::runner::result::{RunnerExecuteResult, RunnerResult};
 use crate::utils::{bank_msg_to_any, wasm_msg_to_any};
 use crate::RunnerError;
 
@@ -32,14 +32,6 @@ pub trait Runner<'a> {
         M: ::prost::Message,
         R: ::prost::Message + Default;
 
-    fn execute_single_block<M, R>(
-        &self,
-        msgs: &[(M, &str, &SigningAccount)],
-    ) -> RunnerExecuteResultMult<R>
-    where
-        M: ::prost::Message,
-        R: ::prost::Message + Default;
-
     fn execute_multiple_raw<R>(
         &self,
         msgs: Vec<cosmrs::Any>,
@@ -62,7 +54,7 @@ pub trait Runner<'a> {
                 CosmosMsg::Bank(msg) => bank_msg_to_any(msg, signer),
                 CosmosMsg::Stargate { type_url, value } => Ok(cosmrs::Any {
                     type_url: type_url.clone(),
-                    value: value.0.clone(),
+                    value: value.to_vec(),
                 }),
                 CosmosMsg::Wasm(msg) => wasm_msg_to_any(msg, signer),
                 _ => todo!("unsupported cosmos msg variant"),

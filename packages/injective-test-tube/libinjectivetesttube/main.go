@@ -3,10 +3,10 @@ package main
 import "C"
 
 import (
-	// std
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -16,13 +16,11 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/pkg/errors"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
-	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 )
 
 var (
@@ -37,36 +35,41 @@ func InitTestEnv() uint64 {
 	mu.Lock()
 	defer mu.Unlock()
 
+	// temp: suppress noise from stdout
+	// os.Stdout = nil
+
+	envCounter += 1
+	id := envCounter
+
+	nodeHome, err := os.MkdirTemp("", ".injective-test-tube-temp-")
+	if err != nil {
+		panic(err)
+	}
+
 	// set up the validator
 	env := new(testenv.TestEnv)
-	env.App, env.Validator = testenv.SetupInjectiveApp()
+	env.App = testenv.NewInjectiveApp(nodeHome)
+	env.NodeHome = nodeHome
 	env.ParamTypesRegistry = *testenv.NewParamTypeRegistry()
+
+	ctx, valPriv := testenv.InitChain(env.App)
+
+	env.Ctx = ctx
+	env.ValPrivs = []*secp256k1.PrivKey{&valPriv}
 
 	env.SetupParamTypes()
 
 	// Allow testing unoptimized contract
 	wasmtypes.MaxWasmSize = 1024 * 1024 * 1024 * 1024 * 1024
 
-	env.Ctx = env.App.BaseApp.NewContext(false, tmproto.Header{Height: 0, ChainID: "injective-777", Time: time.Now().UTC().Round(time.Second)})
+	newBlockTime := env.Ctx.BlockTime().Add(time.Duration(3) * time.Second)
+	newCtx := env.Ctx.WithBlockTime(newBlockTime).WithBlockHeight(env.Ctx.BlockHeight() + 1)
+	env.Ctx = newCtx
 
-	validators := env.App.StakingKeeper.GetAllValidators(env.Ctx)
-	valAddrFancy, _ := validators[0].GetConsAddr()
-	env.App.SlashingKeeper.SetValidatorSigningInfo(env.Ctx, valAddrFancy, slashingtypes.NewValidatorSigningInfo(
-		valAddrFancy,
-		0,
-		0,
-		time.Unix(0, 0),
-		false,
-		0,
-	))
+	reqFinalizeBlock := abci.RequestFinalizeBlock{Height: env.Ctx.BlockHeight(), Txs: [][]byte{}, Time: newBlockTime}
 
-	env.BeginNewBlock(5)
-	reqEndBlock := abci.RequestEndBlock{Height: env.Ctx.BlockHeight()}
-	env.App.EndBlock(reqEndBlock)
+	env.App.FinalizeBlock(&reqFinalizeBlock)
 	env.App.Commit()
-
-	envCounter += 1
-	id := envCounter
 
 	envRegister.Store(id, *env)
 
@@ -84,8 +87,24 @@ func InitAccount(envId uint64, coinsJson string) *C.char {
 
 	priv := secp256k1.GenPrivKey()
 	accAddr := sdk.AccAddress(priv.PubKey().Address())
+	for _, coin := range coins {
+		// create denom if not exist
+		_, hasDenomMetaData := env.App.BankKeeper.GetDenomMetaData(env.Ctx, coin.Denom)
+		if !hasDenomMetaData {
+			denomMetaData := banktypes.Metadata{
+				DenomUnits: []*banktypes.DenomUnit{{
+					Denom:    coin.Denom,
+					Exponent: 0,
+				}},
+				Base: coin.Denom,
+			}
 
-	err := testutil.FundAccount(env.App.BankKeeper, env.Ctx, accAddr, coins)
+			env.App.BankKeeper.SetDenomMetaData(env.Ctx, denomMetaData)
+		}
+
+	}
+
+	err := env.FundAccount(env.Ctx, env.App.BankKeeper, accAddr, coins)
 	if err != nil {
 		panic(errors.Wrapf(err, "Failed to fund account"))
 	}
@@ -99,54 +118,15 @@ func InitAccount(envId uint64, coinsJson string) *C.char {
 
 //export IncreaseTime
 func IncreaseTime(envId uint64, seconds uint64) {
-	env := loadEnv(envId)
-	if env.IncreaseBlockTimeInEndBlocker {
-		env.BeginNewBlock(0)
-		envRegister.Store(envId, env)
-		EndBlockWithTimeIncrease(envId, seconds)
-	} else {
-		env.BeginNewBlock(seconds)
-		envRegister.Store(envId, env)
-		EndBlock(envId)
-	}
-
+	internalFinalizeBlock(envId, "", seconds)
 }
 
-//export BeginBlock
-func BeginBlock(envId uint64) {
-	env := loadEnv(envId)
-	env.BeginNewBlock(1)
-	envRegister.Store(envId, env)
+//export FinalizeBlock
+func FinalizeBlock(envId uint64, base64ReqDeliverTx string) *C.char {
+	return internalFinalizeBlock(envId, base64ReqDeliverTx, 1)
 }
 
-//export EndBlock
-func EndBlock(envId uint64) {
-	env := loadEnv(envId)
-	reqEndBlock := abci.RequestEndBlock{Height: env.Ctx.BlockHeight()}
-	if env.IncreaseBlockTimeInEndBlocker {
-		newBlockTime := env.Ctx.BlockTime().Add(time.Duration(1) * time.Second)
-		newCtx := env.Ctx.WithBlockTime(newBlockTime).WithBlockHeight(env.Ctx.BlockHeight())
-		env.Ctx = newCtx
-		reqEndBlock = abci.RequestEndBlock{Height: env.Ctx.BlockHeight()}
-	}
-	env.App.EndBlock(reqEndBlock)
-	env.App.Commit()
-	envRegister.Store(envId, env)
-}
-
-func EndBlockWithTimeIncrease(envId uint64, timeToIncrease uint64) {
-	env := loadEnv(envId)
-	newBlockTime := env.Ctx.BlockTime().Add(time.Duration(timeToIncrease) * time.Second)
-	newCtx := env.Ctx.WithBlockTime(newBlockTime).WithBlockHeight(env.Ctx.BlockHeight())
-	env.Ctx = newCtx
-	reqEndBlock := abci.RequestEndBlock{Height: env.Ctx.BlockHeight()}
-	env.App.EndBlock(reqEndBlock)
-	env.App.Commit()
-	envRegister.Store(envId, env)
-}
-
-//export Execute
-func Execute(envId uint64, base64ReqDeliverTx string) *C.char {
+func internalFinalizeBlock(envId uint64, base64ReqDeliverTx string, seconds uint64) *C.char {
 	env := loadEnv(envId)
 	// Temp fix for concurrency issue
 	mu.Lock()
@@ -157,14 +137,22 @@ func Execute(envId uint64, base64ReqDeliverTx string) *C.char {
 		panic(err)
 	}
 
-	reqDeliverTx := abci.RequestDeliverTx{}
-	err = proto.Unmarshal(reqDeliverTxBytes, &reqDeliverTx)
+	newBlockTime := env.Ctx.BlockTime().Add(time.Duration(seconds) * time.Second)
+	newCtx := env.Ctx.WithBlockTime(newBlockTime).WithBlockHeight(env.Ctx.BlockHeight() + 1)
+	env.Ctx = newCtx
+
+	reqFinalizeBlock := &abci.RequestFinalizeBlock{Height: env.Ctx.BlockHeight(), Txs: [][]byte{reqDeliverTxBytes}, Time: newBlockTime}
+
+	res, err := env.App.FinalizeBlock(reqFinalizeBlock)
 	if err != nil {
-		return encodeErrToResultBytes(result.ExecuteError, err)
+		panic(err)
+	}
+	_, err = env.App.Commit()
+	if err != nil {
+		panic(err)
 	}
 
-	resDeliverTx := env.App.DeliverTx(reqDeliverTx)
-	bz, err := proto.Marshal(&resDeliverTx)
+	bz, err := proto.Marshal(res)
 	if err != nil {
 		panic(err)
 	}
@@ -172,6 +160,7 @@ func Execute(envId uint64, base64ReqDeliverTx string) *C.char {
 	envRegister.Store(envId, env)
 
 	return encodeBytesResultBytes(bz)
+
 }
 
 //export Query
@@ -190,7 +179,7 @@ func Query(envId uint64, path, base64QueryMsgBytes string) *C.char {
 		err := errors.New("No route found for `" + path + "`")
 		return encodeErrToResultBytes(result.QueryError, err)
 	}
-	res, err := route(env.Ctx, req)
+	res, err := route(env.Ctx, &req)
 
 	if err != nil {
 		return encodeErrToResultBytes(result.QueryError, err)
@@ -257,7 +246,6 @@ func Simulate(envId uint64, base64TxBytes string) *C.char { // => base64GasInfo
 	}
 
 	gasInfo, _, err := env.App.Simulate(txBytes)
-
 	if err != nil {
 		return encodeErrToResultBytes(result.ExecuteError, err)
 	}
@@ -345,20 +333,12 @@ func GetValidatorAddress(envId uint64, n int32) *C.char {
 }
 
 //export GetValidatorPrivateKey
-func GetValidatorPrivateKey(envId uint64) *C.char {
+func GetValidatorPrivateKey(envId uint64, n int32) *C.char {
 	env := loadEnv(envId)
-	priv := env.GetValidatorPrivateKey()
 
+	priv := env.ValPrivs[n].Key
 	base64Priv := base64.StdEncoding.EncodeToString(priv)
-
 	return C.CString(base64Priv)
-}
-
-//export EnableIncreasingBlockTimeInEndBlocker
-func EnableIncreasingBlockTimeInEndBlocker(envId uint64) {
-	env := loadEnv(envId)
-	env.IncreaseBlockTimeInEndBlocker = true
-	envRegister.Store(envId, env)
 }
 
 // ========= utils =========
