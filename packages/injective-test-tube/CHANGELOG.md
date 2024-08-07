@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.13.0-1 - 2024-07-08
+
+### Changed
+
+- Updated to use `injective-cosmwasm@v0.3.0`
+
 ## 1.13.0 - 2024-06-08
 
 ### Changed
