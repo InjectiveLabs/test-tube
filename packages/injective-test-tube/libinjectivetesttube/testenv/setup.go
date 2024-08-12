@@ -2,26 +2,23 @@ package testenv
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
-	// helpers
-
 	// tendermint
-
 	"cosmossdk.io/log"
 	"cosmossdk.io/math"
-
 	abci "github.com/cometbft/cometbft/abci/types"
+
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	tmtypes "github.com/cometbft/cometbft/types"
+
 	dbm "github.com/cosmos/cosmos-db"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
-
 	"github.com/cosmos/cosmos-sdk/server"
+	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -31,7 +28,6 @@ import (
 	govv1types "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 
 	// wasmd
-
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 
 	// injective
@@ -60,18 +56,38 @@ func (ao DebugAppOptions) Get(o string) interface{} {
 	if o == server.FlagTrace {
 		return true
 	}
+	if o == flags.FlagHome {
+		return "injective-test-tube"
+	}
 	return nil
+}
+
+type AppOptions map[string]interface{}
+
+func (m AppOptions) Get(key string) interface{} {
+	v, ok := m[key]
+	if !ok {
+		return nil
+	}
+
+	return v
+}
+
+func NewAppOptionsWithFlagHome(homePath string) servertypes.AppOptions {
+	return AppOptions{
+		flags.FlagHome:   homePath,
+		server.FlagTrace: true,
+	}
 }
 
 func NewInjectiveApp(nodeHome string) *app.InjectiveApp {
 	db := dbm.NewMemDB()
-
 	return app.NewInjectiveApp(
 		log.NewNopLogger(),
 		db,
 		nil,
 		true,
-		simtestutil.NewAppOptionsWithFlagHome(nodeHome),
+		NewAppOptionsWithFlagHome(nodeHome),
 		baseapp.SetChainID("injective-777"),
 	)
 }
@@ -216,17 +232,5 @@ func (env *TestEnv) SetupParamTypes() {
 func requireNoErr(err error) {
 	if err != nil {
 		panic(err)
-	}
-}
-
-func requireNoNil(name string, nilable any) {
-	if nilable == nil {
-		panic(fmt.Sprintf("%s must not be nil", name))
-	}
-}
-
-func requireTrue(name string, b bool) {
-	if !b {
-		panic(fmt.Sprintf("%s must be true", name))
 	}
 }
