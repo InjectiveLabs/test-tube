@@ -9,15 +9,13 @@ require (
 	cosmossdk.io/math v1.3.0
 	github.com/CosmWasm/wasmd v0.51.0
 	github.com/cometbft/cometbft v0.38.9
+	github.com/cosmos/cosmos-db v1.0.2
 	github.com/cosmos/cosmos-sdk v0.50.7
 	github.com/cosmos/gogoproto v1.5.0
 	github.com/pkg/errors v0.9.1
 )
 
-require (
-	github.com/InjectiveLabs/injective-core v0.0.0-00010101000000-000000000000
-	github.com/cosmos/cosmos-db v1.0.2
-)
+require github.com/InjectiveLabs/injective-core v0.0.0-00010101000000-000000000000
 
 require (
 	cloud.google.com/go v0.112.0 // indirect
