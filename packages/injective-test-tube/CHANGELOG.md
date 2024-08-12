@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.13.0-6a6ebfea0453859c097df977d4744a7eb6ace1d8 - 2024-12-08
+
+### Changed
+
+- Updated injective-core to branch `f/mainnet-updates@6a6ebfea0453859c097df977d4744a7eb6ace1d8`
+
+## 1.13.0-2 - 2024-12-08
+
+### Changed
+
+- Fixed debug logs
+
 ## 1.13.0-1 - 2024-07-08
 
 ### Changed

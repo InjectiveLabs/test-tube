@@ -4,7 +4,7 @@ edition     = "2021"
 license     = "MIT OR Apache-2.0"
 name        = "injective-test-tube"
 repository  = "https://github.com/InjectiveLabs/test-tube"
-version     = "1.13.0-a90d21322682bbfdfc72445dc0a9b45ee49f1084"
+version     = "1.13.0-6a6ebfea0453859c097df977d4744a7eb6ace1d8"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 exclude = [ "injective-core", "test_artifacts" ]
