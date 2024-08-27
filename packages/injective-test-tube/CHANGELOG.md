@@ -5,14 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.2.0-d0e5f735acc244f35a4f3b856f293277c8ee227e] - 2024-05-07
+## 1.13.0-6a6ebfea0453859c097df977d4744a7eb6ace1d8 - 2024-12-08
 
-### Added
+### Changed
+
+- Updated injective-core to branch `f/mainnet-updates@6a6ebfea0453859c097df977d4744a7eb6ace1d8`
+
+## 1.13.0-2 - 2024-12-08
+
+### Changed
+
+- Fixed debug logs
+
+## 1.13.0-1 - 2024-07-08
+
+### Changed
+
+- Updated to use `injective-cosmwasm@v0.3.0`
+
+## 1.13.0 - 2024-06-08
+
+### Changed
+
+- Updated to use `injective-core@v1.13.0`
+- Updated to use `test-tube-inj@2.0.1`
+
+## 1.2.1 - 2024-06-06
 
 ### Changed
 
 - Updated:
-  - to injective-core@d0e5f735acc244f35a4f3b856f293277c8ee227e
+  - injective-std
+  - prost
+
+## 1.2.0 - 2024-02-05
+
+### Changed
+
+- Updated:
+  - injective-std, interfaces changed for some modules
 
 ## [1.1.7] - 2024-01-12
 

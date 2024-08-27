@@ -52,9 +52,9 @@ pub trait Runner<'a> {
             .iter()
             .map(|msg| match msg {
                 CosmosMsg::Bank(msg) => bank_msg_to_any(msg, signer),
-                CosmosMsg::Stargate { type_url, value } => Ok(cosmrs::Any {
-                    type_url: type_url.clone(),
-                    value: value.to_vec(),
+                CosmosMsg::Any(msg) => Ok(cosmrs::Any {
+                    type_url: msg.type_url.clone(),
+                    value: msg.value.to_vec(),
                 }),
                 CosmosMsg::Wasm(msg) => wasm_msg_to_any(msg, signer),
                 _ => todo!("unsupported cosmos msg variant"),
