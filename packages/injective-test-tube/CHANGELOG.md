@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 1.13.2 - 2024-28-08
 
 ### Changed
-Updated to use injective-core@v1.13.2
+- Updated to use injective-core@v1.13.2
 
 ## 1.13.0-3 - 2024-14-08
 
