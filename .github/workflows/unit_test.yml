@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: Install Rust Toolchain
-        uses: actions-rs/toolchain@v2
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: 1.78.0
@@ -23,7 +23,7 @@ jobs:
           components: llvm-tools-preview
 
       - name: Run Tests
-        uses: actions-rs/cargo@v2
+        uses: actions-rs/cargo@v1
         with:
           command: test
 
@@ -32,10 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: Install Rust Toolchain
-        uses: actions-rs/toolchain@v2
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: 1.78.0
@@ -43,13 +43,13 @@ jobs:
           components: rustfmt, clippy
 
       - name: Run cargo fmt
-        uses: actions-rs/cargo@v2
+        uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
 
       - name: Run cargo clippy
-        uses: actions-rs/cargo@v2
+        uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --tests -- -D warnings
