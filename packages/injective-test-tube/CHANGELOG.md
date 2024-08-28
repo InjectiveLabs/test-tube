@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## 1.13.0-4 - 2024-27-08
+## 1.13.2 - 2024-28-08
 
 ### Changed
 Updated to use injective-core@v1.13.2
