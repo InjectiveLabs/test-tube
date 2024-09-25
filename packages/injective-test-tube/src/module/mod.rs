@@ -1,3 +1,4 @@
+mod auction;
 mod authz;
 mod bank;
 mod exchange;
@@ -12,6 +13,7 @@ mod wasmx;
 pub use test_tube_inj::macros;
 pub use test_tube_inj::module::Module;
 
+pub use auction::Auction;
 pub use authz::Authz;
 pub use bank::Bank;
 pub use exchange::Exchange;
