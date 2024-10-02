@@ -6,14 +6,14 @@ use cosmrs::crypto::secp256k1::SigningKey;
 use cosmrs::proto::tendermint::v0_38::abci::ResponseFinalizeBlock;
 use cosmrs::tx;
 use cosmrs::tx::{Fee, SignerInfo};
-use cosmwasm_std::Coin;
+use cosmwasm_std::{Coin, Timestamp};
 use prost::Message;
 
 use crate::account::{Account, FeeSetting, SigningAccount};
 use crate::bindings::{
-    AccountNumber, AccountSequence, FinalizeBlock, GetBlockHeight, GetBlockTime, GetParamSet,
-    GetValidatorAddress, GetValidatorPrivateKey, IncreaseTime, InitAccount, InitTestEnv, Query,
-    Simulate,
+    AccountNumber, AccountSequence, CleanUp, FinalizeBlock, GetBlockHeight, GetBlockTime,
+    GetParamSet, GetValidatorAddress, GetValidatorPrivateKey, IncreaseTime, InitAccount,
+    InitTestEnv, Query, Simulate,
 };
 use crate::redefine_as_go_string;
 use crate::runner::error::{DecodeError, EncodeError, RunnerError};
@@ -96,8 +96,6 @@ impl BaseApp {
         .map_err(DecodeError::Utf8Error)?
         .to_string();
 
-        println!("pkey: {:?}", pkey);
-
         let secp256k1_priv = BASE64_STANDARD
             .decode(pkey)
             .map_err(DecodeError::Base64DecodeError)?;
@@ -105,7 +103,7 @@ impl BaseApp {
         let signing_key = SigningKey::from_slice(&secp256k1_priv).unwrap();
 
         let validator = SigningAccount::new(
-            "inj".to_string(),
+            self.address_prefix.clone(),
             signing_key,
             FeeSetting::Auto {
                 gas_price: Coin::new(INJECTIVE_MIN_GAS_PRICE, denom),
@@ -114,6 +112,27 @@ impl BaseApp {
         );
 
         Ok(validator)
+    }
+
+    pub fn get_chain_id(&self) -> &str {
+        &self.chain_id
+    }
+
+    pub fn get_account_sequence(&self, address: &str) -> u64 {
+        redefine_as_go_string!(address);
+        unsafe { AccountSequence(self.id, address) }
+    }
+
+    pub fn get_account_number(&self, address: &str) -> u64 {
+        redefine_as_go_string!(address);
+        unsafe { AccountNumber(self.id, address) }
+    }
+
+    /// Get the current block time
+    pub fn get_block_timestamp(&self) -> Timestamp {
+        let result = unsafe { GetBlockTime(self.id) };
+
+        Timestamp::from_nanos(result as u64)
     }
 
     /// Get the current block time
@@ -187,23 +206,23 @@ impl BaseApp {
         redefine_as_go_string!(addr);
 
         let seq = unsafe { AccountSequence(self.id, addr) };
-
         let account_number = unsafe { AccountNumber(self.id, addr) };
+
         let signer_info = SignerInfo::single_direct(Some(signer.public_key()), seq);
+
+        let chain_id = self
+            .chain_id
+            .parse()
+            .expect("parse const str of chain id should never fail");
+
         let auth_info = signer_info.auth_info(fee);
-        let sign_doc = tx::SignDoc::new(
-            &tx_body,
-            &auth_info,
-            &(self
-                .chain_id
-                .parse()
-                .expect("parse const str of chain id should never fail")),
-            account_number,
-        )
-        .map_err(|e| match e.downcast::<prost::EncodeError>() {
-            Ok(encode_err) => EncodeError::ProtoEncodeError(encode_err),
-            Err(e) => panic!("expect `prost::EncodeError` but got {:?}", e),
-        })?;
+        let sign_doc =
+            tx::SignDoc::new(&tx_body, &auth_info, &chain_id, account_number).map_err(|e| {
+                match e.downcast::<prost::EncodeError>() {
+                    Ok(encode_err) => EncodeError::ProtoEncodeError(encode_err),
+                    Err(e) => panic!("expect `prost::EncodeError` but got {:?}", e),
+                }
+            })?;
 
         let tx_raw = sign_doc.sign(signer.signing_key()).unwrap();
 
@@ -224,15 +243,7 @@ impl BaseApp {
     where
         I: IntoIterator<Item = cosmrs::Any>,
     {
-        let zero_fee = Fee::from_amount_and_gas(
-            cosmrs::Coin {
-                denom: self.fee_denom.parse().unwrap(),
-                amount: INJECTIVE_MIN_GAS_PRICE,
-            },
-            0u64,
-        );
-
-        let tx = self.create_signed_tx(msgs, signer, zero_fee)?;
+        let tx = self.create_signed_tx(msgs, signer, self.default_simulation_fee())?;
         let base64_tx_bytes = BASE64_STANDARD.encode(tx);
 
         redefine_as_go_string!(base64_tx_bytes);
@@ -246,6 +257,17 @@ impl BaseApp {
                 .map_err(RunnerError::DecodeError)
         }
     }
+
+    pub fn default_simulation_fee(&self) -> Fee {
+        Fee::from_amount_and_gas(
+            cosmrs::Coin {
+                denom: self.fee_denom.parse().unwrap(),
+                amount: INJECTIVE_MIN_GAS_PRICE,
+            },
+            0u64,
+        )
+    }
+
     fn estimate_fee<I>(&self, msgs: I, signer: &SigningAccount) -> RunnerResult<Fee>
     where
         I: IntoIterator<Item = cosmrs::Any>,
@@ -286,6 +308,15 @@ impl BaseApp {
             let pset = RawResult::from_non_null_ptr(pset).into_result()?;
             let pset = P::decode(pset.as_slice()).map_err(DecodeError::ProtoDecodeError)?;
             Ok(pset)
+        }
+    }
+}
+
+/// Cleanup the test environment when the app is dropped.
+impl Drop for BaseApp {
+    fn drop(&mut self) {
+        unsafe {
+            CleanUp(self.id);
         }
     }
 }

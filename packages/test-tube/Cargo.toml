@@ -9,14 +9,13 @@ version     = "2.0.1"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-base64           = "0.21.5"
-cosmrs           = { version = "0.15.0", features = [ "cosmwasm", "rpc" ] }
-cosmwasm-std     = { version = "2.1.0", features = [ "abort", "cosmwasm_1_2", "cosmwasm_1_3", "cosmwasm_1_4", "cosmwasm_2_0", "iterator", "stargate" ] }
-prost            = "0.12.4"
-serde            = "1.0.144"
-serde_json       = "1.0.85"
-tendermint-proto = "0.32.0"
-thiserror        = "1.0.34"
+base64       = "0.21.5"
+cosmrs       = { version = "0.20.0", features = [ "cosmwasm", "rpc" ] }
+cosmwasm-std = { version = "2.1.0", features = [ "abort", "cosmwasm_1_2", "cosmwasm_1_3", "cosmwasm_1_4", "cosmwasm_2_0", "iterator", "stargate" ] }
+prost        = { version = "0.13.3", default-features = false, features = [ "prost-derive" ] }
+serde        = "1.0.144"
+serde_json   = "1.0.85"
+thiserror    = "1.0.34"
 
 [dev-dependencies]
 cw1-whitelist = "0.15.0"

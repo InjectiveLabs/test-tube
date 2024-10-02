@@ -12,10 +12,11 @@ exclude = [ "injective-core", "test_artifacts" ]
 [dependencies]
 base64             = "0.21.5"
 cosmrs             = { version = "0.15.0", features = [ "cosmwasm", "rpc" ] }
+cosmwasm-schema    = { version = "2.1.1" }
 cosmwasm-std       = { version = "2.1.0", features = [ "abort", "cosmwasm_1_2", "cosmwasm_1_3", "cosmwasm_1_4", "cosmwasm_2_0", "iterator", "stargate" ] }
 hex                = "0.4.2"
-injective-cosmwasm = { version = "0.3.0" }
-injective-std      = { version = "1.13.0" }
+injective-cosmwasm = { version = "0.3.0", path = "../../../cw-injective/packages/injective-cosmwasm" }
+injective-std      = { version = "1.13.0", path = "../../../cw-injective/packages/injective-std" }
 prost              = "0.12.3"
 serde              = "1.0.144"
 serde_json         = "1.0.85"
