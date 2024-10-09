@@ -221,9 +221,6 @@ extern "C" {
     pub fn IncreaseTime(envId: GoUint64, seconds: GoInt64);
 }
 extern "C" {
-    pub fn Execute(envId: GoUint64, base64ReqDeliverTx: GoString) -> *mut ::std::os::raw::c_char;
-}
-extern "C" {
     pub fn Query(
         envId: GoUint64,
         path: GoString,

@@ -5,9 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.13.2-auction - 2024-08-10
+
+### Changed
+
+- Updated to use `injective-std@v1.13.2-auction` which is a manual fix for the Auction protos
+
 ## 1.13.2 - 2024-28-08
 
 ### Changed
+
 - Updated to use injective-core@v1.13.2
 
 ## 1.13.0-3 - 2024-14-08

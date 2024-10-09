@@ -166,7 +166,6 @@ func GenesisStateWithValSet(appInstance *app.InjectiveApp) (app.GenesisState, se
 	acc := authtypes.NewBaseAccountWithAddress(senderPrivKey.PubKey().Address().Bytes())
 
 	//////////////////////
-	// balances := []banktypes.Balance{}
 	balance := banktypes.Balance{
 		Address: acc.GetAddress().String(),
 		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(100000000000000))),
