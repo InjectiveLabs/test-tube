@@ -53,9 +53,6 @@ mod tests {
     use cosmwasm_schema::cw_serde;
     use test_tube_inj::Module;
 
-    #[cw_serde]
-    pub struct InstantiateMsg {}
-
     #[test]
     fn auction_integration() {
         let app = InjectiveTestApp::new();
@@ -82,7 +79,6 @@ mod tests {
         assert_eq!(
             result,
             LastAuctionResult {
-                // amount: "100000inj".to_string(),
                 amount: Some(BaseCoin {
                     denom: "inj".to_string(),
                     amount: "100000".to_string()
@@ -91,38 +87,5 @@ mod tests {
                 round: 0u64,
             }
         );
-    }
-
-    #[test]
-    fn ttest_cosmwasmpool_proposal() {
-        let app = InjectiveTestApp::default();
-
-        let wasm = Wasm::new(&app);
-
-        let signer = app
-            .init_account(&[cosmwasm_std::Coin::new(1000000000000000000u128, "inj")])
-            .unwrap();
-
-        // upload cosmwasm pool code and whitelist through proposal
-        let wasm_byte_code = std::fs::read(
-            "/Users/wandlitz/go/src/github.com/InjectiveLabs/test-tube/packages/injective-test-tube/src/module/artifacts/dummy-aarch64.wasm",
-        )
-        .unwrap();
-
-        let code_id = wasm
-            .store_code(&wasm_byte_code, None, &signer)
-            .unwrap()
-            .data
-            .code_id;
-
-        wasm.instantiate(
-            code_id,
-            &InstantiateMsg {},
-            None,
-            Some("no label"),
-            &[],
-            &signer,
-        )
-        .unwrap();
     }
 }
