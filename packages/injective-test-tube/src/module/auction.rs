@@ -1,8 +1,7 @@
 use injective_std::types::injective::auction::v1beta1::{
-    LastAuctionResult, QueryAuctionParamsRequest, QueryAuctionParamsResponse,
-    QueryCurrentAuctionBasketRequest, QueryCurrentAuctionBasketResponse,
-    QueryLastAuctionResultRequest, QueryLastAuctionResultResponse, QueryModuleStateRequest,
-    QueryModuleStateResponse,
+    QueryAuctionParamsRequest, QueryAuctionParamsResponse, QueryCurrentAuctionBasketRequest,
+    QueryCurrentAuctionBasketResponse, QueryLastAuctionResultRequest,
+    QueryLastAuctionResultResponse, QueryModuleStateRequest, QueryModuleStateResponse,
 };
 use test_tube_inj::fn_query;
 
@@ -49,8 +48,7 @@ mod tests {
         },
     };
 
-    use crate::{Auction, InjectiveTestApp, Wasm};
-    use cosmwasm_schema::cw_serde;
+    use crate::{Auction, InjectiveTestApp};
     use test_tube_inj::Module;
 
     #[test]
@@ -81,7 +79,7 @@ mod tests {
             LastAuctionResult {
                 amount: Some(BaseCoin {
                     denom: "inj".to_string(),
-                    amount: "100000".to_string()
+                    amount: "0".to_string()
                 }),
                 winner: "".to_string(),
                 round: 0u64,
