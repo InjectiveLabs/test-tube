@@ -20,7 +20,7 @@ injective-std      = { version = "=1.13.2-auction", path = "../../../cw-injectiv
 prost              = { version = "0.13.3", features = [ "prost-derive" ] }
 serde              = "1.0.144"
 serde_json         = "1.0.85"
-test-tube-inj      = { version = "2.0.1", path = "../../packages/test-tube" }
+test-tube-inj      = { version = "2.0.2" }
 thiserror          = "1.0.34"
 
 [build-dependencies]
