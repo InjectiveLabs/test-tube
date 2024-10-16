@@ -64,7 +64,8 @@ mod tests {
             response.params,
             Some(Params {
                 auction_period: 604800,
-                min_next_bid_increment_rate: 2_500_000_000_000_000u128.to_string()
+                min_next_bid_increment_rate: 2_500_000_000_000_000u128.to_string(),
+                inj_basket_max_cap: "".to_string(),
             })
         );
 
