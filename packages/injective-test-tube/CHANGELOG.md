@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Bumped `prost@v0.13.3`
 
+## 1.13.2-auction - 2024-08-10
+
+### Changed
+
+- Updated to use `injective-std@v1.13.2-auction` which is a manual fix for the Auction protos
+
 ## 1.13.2 - 2024-28-08
 
 ### Changed

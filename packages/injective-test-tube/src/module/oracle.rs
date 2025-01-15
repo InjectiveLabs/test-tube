@@ -138,8 +138,6 @@ mod tests {
             )
             .unwrap();
 
-        println!("{:#?}", res);
-
         let proposal_id = res
             .events
             .iter()
