@@ -129,7 +129,7 @@ where
     pub fn query<M, Res>(&self, contract: &str, msg: &M) -> RunnerResult<Res>
     where
         M: ?Sized + Serialize,
-        Res: ?Sized + DeserializeOwned,
+        Res: DeserializeOwned,
     {
         let res = self
             .runner
