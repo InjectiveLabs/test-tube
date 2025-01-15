@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.13.3 - 2024-16-10
+
+### Changed
+
+- Bumped `prost@v0.13.4`
+- Bumped `injective-std@v1.13.4`
+
+## 1.13.2-auction.1 - 2024-16-10
+
+### Changed
+
+- Bumped `prost@v0.13.3`
+
 ## 1.13.2-auction - 2024-08-10
 
 ### Changed
