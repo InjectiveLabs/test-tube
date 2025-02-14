@@ -274,11 +274,11 @@ replace (
 	cosmossdk.io/x/feegrant => github.com/InjectiveLabs/cosmos-sdk/x/feegrant v0.50.6-inj-0
 	cosmossdk.io/x/upgrade => github.com/InjectiveLabs/cosmos-sdk/x/upgrade v0.50.6-inj-0
 
-	github.com/CosmWasm/wasmd => github.com/InjectiveLabs/wasmd v0.52.0-inj-0
+	github.com/CosmWasm/wasmd => github.com/InjectiveLabs/wasmd v0.53.2-inj-1
 
-	github.com/InjectiveLabs/injective-core => github.com/InjectiveFoundation/injective-core v1.13.3
+	github.com/InjectiveLabs/injective-core => github.com/InjectiveFoundation/injective-core v1.14.0
 	github.com/bandprotocol/bandchain-packet => github.com/InjectiveLabs/bandchain-packet v0.0.4-inj-1
-	github.com/cometbft/cometbft => github.com/InjectiveLabs/cometbft v0.38.11-inj-0
+	github.com/cometbft/cometbft => github.com/InjectiveLabs/cometbft v0.38.17-inj-0
 
 	github.com/cosmos/cosmos-sdk => github.com/InjectiveLabs/cosmos-sdk v0.50.9-inj-2
 	github.com/cosmos/ibc-apps/modules/ibc-hooks/v8 => github.com/InjectiveLabs/ibc-apps/modules/ibc-hooks/v8 v8.0.0-inj-0
