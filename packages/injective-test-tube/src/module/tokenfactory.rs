@@ -91,6 +91,7 @@ mod tests {
                     name: "token_name".to_owned(),
                     symbol: "SYM".to_owned(),
                     decimals: 6,
+                    allow_admin_burn: true,
                 },
                 &signer,
             )
@@ -121,6 +122,7 @@ mod tests {
                 MsgMint {
                     sender: signer.address(),
                     amount: Some(coin.clone()),
+                    receiver: signer.address(),
                 },
                 &signer,
             )
@@ -144,6 +146,7 @@ mod tests {
                 MsgBurn {
                     sender: signer.address(),
                     amount: Some(coin.clone()),
+                    burn_from_address: signer.address(),
                 },
                 &signer,
             )

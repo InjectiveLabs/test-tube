@@ -47,21 +47,6 @@ type TestEnv struct {
 	NodeHome           string
 }
 
-// DebugAppOptions is a stub implementing AppOptions
-type DebugAppOptions struct {
-}
-
-// Get implements AppOptions
-func (ao DebugAppOptions) Get(o string) interface{} {
-	if o == server.FlagTrace {
-		return true
-	}
-	if o == flags.FlagHome {
-		return "injective-test-tube"
-	}
-	return nil
-}
-
 type AppOptions map[string]interface{}
 
 func (m AppOptions) Get(key string) interface{} {
