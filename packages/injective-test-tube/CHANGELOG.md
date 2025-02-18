@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Bumped `prost@v0.13.4`
 - Bumped `injective-std@v1.13.4`
 
+## 1.13.3 - 2024-16-10
+
+### Changed
+
+- Bumped `prost@v0.13.4`
+- Bumped `injective-std@v1.13.4`
+
 ## 1.13.2-auction.1 - 2024-16-10
 
 ### Changed
