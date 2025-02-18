@@ -5,12 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## 1.13.3 - 2024-16-10
+## 1.14.0-rc1 - 2025-18-02
 
 ### Changed
 
-- Bumped `prost@v0.13.4`
-- Bumped `injective-std@v1.13.4`
+- Bumped `injective-core@v1.14.0`
+- Bumped `injective-std@v1.14.0-rc1`
 
 ## 1.13.3 - 2024-16-10
 
