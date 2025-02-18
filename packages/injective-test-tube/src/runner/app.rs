@@ -212,6 +212,7 @@ mod tests {
             name: "token_name".to_owned(),
             symbol: "SYM".to_owned(),
             decimals: 6,
+            allow_admin_burn: true,
         };
 
         let res: ExecuteResponse<MsgCreateDenomResponse> = app
@@ -231,6 +232,7 @@ mod tests {
             name: "token_name".to_owned(),
             symbol: "SYM".to_owned(),
             decimals: 6,
+            allow_admin_burn: true,
         };
 
         let res: ExecuteResponse<MsgCreateDenomResponse> = app
@@ -250,6 +252,7 @@ mod tests {
             name: "token_name".to_owned(),
             symbol: "SYM".to_owned(),
             decimals: 6,
+            allow_admin_burn: true,
         };
 
         let msg_2 = MsgCreateDenom {
@@ -258,6 +261,7 @@ mod tests {
             name: "token_name".to_owned(),
             symbol: "SYM".to_owned(),
             decimals: 6,
+            allow_admin_burn: true,
         };
 
         assert_eq!(app.get_block_height(), 4i64);
