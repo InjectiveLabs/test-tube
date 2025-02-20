@@ -76,6 +76,16 @@ func InitTestEnv() uint64 {
 	return id
 }
 
+//export CleanUp
+func CleanUp(envId uint64) {
+	env := loadEnv(envId)
+	err := os.RemoveAll(env.NodeHome)
+	if err != nil {
+		panic(err)
+	}
+	envRegister.Delete(envId)
+}
+
 //export InitAccount
 func InitAccount(envId uint64, coinsJson string) *C.char {
 	env := loadEnv(envId)
@@ -96,6 +106,61 @@ func InitAccount(envId uint64, coinsJson string) *C.char {
 					Denom:    coin.Denom,
 					Exponent: 0,
 				}},
+				Base: coin.Denom,
+			}
+
+			env.App.BankKeeper.SetDenomMetaData(env.Ctx, denomMetaData)
+		}
+
+	}
+
+	err := env.FundAccount(env.Ctx, env.App.BankKeeper, accAddr, coins)
+	if err != nil {
+		panic(errors.Wrapf(err, "Failed to fund account"))
+	}
+
+	base64Priv := base64.StdEncoding.EncodeToString(priv.Bytes())
+
+	envRegister.Store(envId, env)
+
+	return C.CString(base64Priv)
+}
+
+//export InitAccountDecimals
+func InitAccountDecimals(envId uint64, coinsJson string, decimalsJson string) *C.char {
+	env := loadEnv(envId)
+	var coins sdk.Coins
+
+	if err := json.Unmarshal([]byte(coinsJson), &coins); err != nil {
+		panic(err)
+	}
+
+	var decimals []uint32
+	if err := json.Unmarshal([]byte(decimalsJson), &decimals); err != nil {
+		panic(err)
+	}
+
+	if len(coins) != len(decimals) {
+		panic(errors.New("coins and decimals must have the same length"))
+	}
+
+	priv := secp256k1.GenPrivKey()
+	accAddr := sdk.AccAddress(priv.PubKey().Address())
+	for i, coin := range coins {
+		// create denom if not exist
+		_, hasDenomMetaData := env.App.BankKeeper.GetDenomMetaData(env.Ctx, coin.Denom)
+		if !hasDenomMetaData {
+			denomMetaData := banktypes.Metadata{
+				DenomUnits: []*banktypes.DenomUnit{
+					{
+						Denom:    coin.Denom,
+						Exponent: 0,
+					},
+					{
+						Denom:    coin.Denom,
+						Exponent: decimals[i],
+					},
+				},
 				Base: coin.Denom,
 			}
 

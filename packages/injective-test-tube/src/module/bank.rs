@@ -83,4 +83,44 @@ mod tests {
         )
         .unwrap();
     }
+
+    #[test]
+    fn bank_integration_with_decimals() {
+        let app = InjectiveTestApp::new();
+        let signer = app
+            .init_account_decimals(
+                &[Coin::new(100_000_000_000_000_000_000u128, "inj")],
+                &[6u32],
+            )
+            .unwrap();
+        let receiver = app.init_account(&[Coin::new(1u128, "inj")]).unwrap();
+        let bank = Bank::new(&app);
+
+        let response = bank
+            .query_balance(&QueryBalanceRequest {
+                address: receiver.address(),
+                denom: "inj".to_string(),
+            })
+            .unwrap();
+        assert_eq!(
+            response.balance.unwrap(),
+            BaseCoin {
+                amount: 1u128.to_string(),
+                denom: "inj".to_string(),
+            }
+        );
+
+        bank.send(
+            MsgSend {
+                from_address: signer.address(),
+                to_address: receiver.address(),
+                amount: vec![BaseCoin {
+                    amount: 9u128.to_string(),
+                    denom: "inj".to_string(),
+                }],
+            },
+            &signer,
+        )
+        .unwrap();
+    }
 }

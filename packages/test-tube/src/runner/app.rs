@@ -13,7 +13,7 @@ use crate::account::{Account, FeeSetting, SigningAccount};
 use crate::bindings::{
     AccountNumber, AccountSequence, CleanUp, FinalizeBlock, GetBlockHeight, GetBlockTime,
     GetParamSet, GetValidatorAddress, GetValidatorPrivateKey, IncreaseTime, InitAccount,
-    InitTestEnv, Query, Simulate,
+    InitAccountDecimals, InitTestEnv, Query, Simulate,
 };
 use crate::redefine_as_go_string;
 use crate::runner::error::{DecodeError, EncodeError, RunnerError};
@@ -143,6 +143,56 @@ impl BaseApp {
     /// Get the current block height
     pub fn get_block_height(&self) -> i64 {
         unsafe { GetBlockHeight(self.id) }
+    }
+    /// Initialize account with initial balance of any coins, defining decimals if not created.
+    /// This function mints new coins and send to newly created account
+    pub fn init_account_decimals(
+        &self,
+        coins: &[Coin],
+        decimals: &[u32],
+    ) -> RunnerResult<SigningAccount> {
+        println!("init_account_decimals");
+        let mut coins = coins.to_vec();
+
+        // invalid coins if denom are unsorted
+        coins.sort_by(|a, b| a.denom.cmp(&b.denom));
+
+        let coins_json = serde_json::to_string(&coins).map_err(EncodeError::JsonEncodeError)?;
+        redefine_as_go_string!(coins_json);
+
+        let decimals_json =
+            serde_json::to_string(&decimals).map_err(EncodeError::JsonEncodeError)?;
+        redefine_as_go_string!(decimals_json);
+
+        let empty_tx = "".to_string();
+        redefine_as_go_string!(empty_tx);
+
+        let base64_priv = unsafe {
+            let addr = InitAccountDecimals(self.id, coins_json, decimals_json);
+            FinalizeBlock(self.id, empty_tx);
+            CString::from_raw(addr)
+        }
+        .to_str()
+        .map_err(DecodeError::Utf8Error)?
+        .to_string();
+
+        let secp256k1_priv = BASE64_STANDARD
+            .decode(base64_priv)
+            .map_err(DecodeError::Base64DecodeError)?;
+
+        let signing_key = SigningKey::from_slice(&secp256k1_priv).map_err(|e| {
+            let msg = e.to_string();
+            DecodeError::SigningKeyDecodeError { msg }
+        })?;
+
+        Ok(SigningAccount::new(
+            self.address_prefix.clone(),
+            signing_key,
+            FeeSetting::Auto {
+                gas_price: Coin::new(INJECTIVE_MIN_GAS_PRICE, self.fee_denom.clone()),
+                gas_adjustment: self.default_gas_adjustment,
+            },
+        ))
     }
     /// Initialize account with initial balance of any coins.
     /// This function mints new coins and send to newly created account

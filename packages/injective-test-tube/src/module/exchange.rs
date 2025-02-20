@@ -594,4 +594,155 @@ mod tests {
             )
             .unwrap();
     }
+
+    #[test]
+    fn exchange_decimals() {
+        let app = InjectiveTestApp::new();
+        let signer = app
+            .init_account_decimals(
+                &[
+                    Coin::new(10_000_000_000_000_000_000_000u128, "inj"),
+                    Coin::new(100_000_000_000_000_000_000u128, "usdt"),
+                ],
+                &[10u32, 6u32],
+            )
+            .unwrap();
+
+        let bank = Bank::new(&app);
+        let exchange = Exchange::new(&app);
+        let gov = Gov::new(&app);
+
+        let validator = app
+            .get_first_validator_signing_account("inj".to_string(), 1.2f64)
+            .unwrap();
+
+        bank.send(
+            MsgSend {
+                from_address: signer.address(),
+                to_address: validator.address(),
+                amount: vec![SDKCoin {
+                    amount: "1000000000000000000000".to_string(),
+                    denom: "inj".to_string(),
+                }],
+            },
+            &signer,
+        )
+        .unwrap();
+
+        let admin = app
+            .init_account(&[
+                Coin::new(10_000_000_000_000_000_000_000u128, "inj"),
+                Coin::new(100_000_000_000_000_000_000u128, "usdt"),
+            ])
+            .unwrap();
+
+        let res: v1beta1::QueryExchangeParamsResponse = app
+            .query(
+                "/injective.exchange.v1beta1.Query/QueryExchangeParams",
+                &v1beta1::QueryExchangeParamsRequest {},
+            )
+            .unwrap();
+
+        let mut exchange_params = res.params.unwrap();
+        exchange_params.exchange_admins.push(admin.address());
+        exchange_params.max_derivative_order_side_count = 300u32;
+
+        // NOTE: this could change int he future
+        let governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
+
+        let proposal = v1beta1::BatchExchangeModificationProposal {
+            title: "Update params".to_string(),
+            description: "Basically updating the params".to_string(),
+            spot_market_param_update_proposals: vec![],
+            derivative_market_param_update_proposals: vec![],
+            spot_market_launch_proposals: vec![],
+            perpetual_market_launch_proposals: vec![],
+            expiry_futures_market_launch_proposals: vec![],
+            trading_reward_campaign_update_proposal: None,
+            binary_options_market_launch_proposals: vec![],
+            binary_options_param_update_proposals: vec![],
+            denom_decimals_update_proposal: None,
+            fee_discount_proposal: None,
+            market_forced_settlement_proposals: vec![],
+            denom_min_notional_proposal: Some(v1beta1::DenomMinNotionalProposal {
+                title: "Update min notional".to_string(),
+                description: "Love it!".to_string(),
+                denom_min_notionals: vec![v1beta1::DenomMinNotional {
+                    denom: "usdt".to_string(),
+                    min_notional: "1".to_string(),
+                }],
+            }),
+        };
+
+        let mut buf = vec![];
+        v1beta1::MsgBatchExchangeModification::encode(
+            &v1beta1::MsgBatchExchangeModification {
+                sender: governance_module_address.to_string(),
+                proposal: Some(proposal),
+            },
+            &mut buf,
+        )
+        .unwrap();
+
+        let res = gov
+            .submit_proposal(
+                MsgSubmitProposal {
+                    messages: vec![Any {
+                        type_url: v1beta1::MsgBatchExchangeModification::TYPE_URL.to_string(),
+                        value: buf,
+                    }],
+                    initial_deposit: vec![SDKCoin {
+                        amount: "100000000000000000000".to_string(),
+                        denom: "inj".to_string(),
+                    }],
+                    proposer: validator.address(),
+                    metadata: "".to_string(),
+                    title: "Update params".to_string(),
+                    summary: "Basically updating the params".to_string(),
+                    expedited: false,
+                },
+                &validator,
+            )
+            .unwrap();
+
+        let proposal_id = res
+            .events
+            .iter()
+            .find(|e| e.ty == "submit_proposal")
+            .unwrap()
+            .attributes[0]
+            .value
+            .clone();
+
+        gov.vote(
+            MsgVote {
+                proposal_id: u64::from_str(&proposal_id).unwrap(),
+                voter: validator.address(),
+                option: 1i32,
+                metadata: "".to_string(),
+            },
+            &validator,
+        )
+        .unwrap();
+
+        // Increase time to pass the proposal
+        app.increase_time(100u64);
+
+        exchange
+            .instant_spot_market_launch(
+                v1beta1::MsgInstantSpotMarketLaunch {
+                    sender: admin.address(),
+                    ticker: "INJ/USDT".to_owned(),
+                    base_denom: "inj".to_owned(),
+                    quote_denom: "usdt".to_owned(),
+                    min_price_tick_size: "10000".to_owned(),
+                    min_quantity_tick_size: "100000".to_owned(),
+                    min_notional: "1".to_owned(),
+                    base_decimals: 0,
+                    quote_decimals: 0,
+                },
+                &admin,
+            )
+            .unwrap();
+    }
 }

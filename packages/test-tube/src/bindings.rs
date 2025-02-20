@@ -215,6 +215,13 @@ extern "C" {
     pub fn InitAccount(envId: GoUint64, coinsJson: GoString) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
+    pub fn InitAccountDecimals(
+        envId: GoUint64,
+        coinsJson: GoString,
+        decimalsJson: GoString,
+    ) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
     pub fn FinalizeBlock(envId: GoUint64, tx: GoString) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
