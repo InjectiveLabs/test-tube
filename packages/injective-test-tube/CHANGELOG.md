@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.14.0-rc2 - 2025-20-02
+
+### Changed
+
+- Bumped `test-tube-inj@2.0.5`
+
 ## 1.14.0-rc1 - 2025-18-02
 
 ### Changed
