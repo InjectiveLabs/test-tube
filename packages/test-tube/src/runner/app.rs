@@ -151,17 +151,23 @@ impl BaseApp {
         coins: &[Coin],
         decimals: &[u32],
     ) -> RunnerResult<SigningAccount> {
-        println!("init_account_decimals");
         let mut coins = coins.to_vec();
+        let mut decimals = decimals.to_vec();
 
-        // invalid coins if denom are unsorted
-        coins.sort_by(|a, b| a.denom.cmp(&b.denom));
+        // Create indices to track original positions
+        let mut indices: Vec<usize> = (0..coins.len()).collect();
+
+        // Sort indices based on coin denominations
+        indices.sort_by(|&a, &b| coins[a].denom.cmp(&coins[b].denom));
+
+        // Reorder coins and decimals using the sorted indices
+        coins = indices.iter().map(|&i| coins[i].clone()).collect();
+        decimals = indices.iter().map(|&i| decimals[i]).collect();
 
         let coins_json = serde_json::to_string(&coins).map_err(EncodeError::JsonEncodeError)?;
-        redefine_as_go_string!(coins_json);
-
         let decimals_json =
             serde_json::to_string(&decimals).map_err(EncodeError::JsonEncodeError)?;
+        redefine_as_go_string!(coins_json);
         redefine_as_go_string!(decimals_json);
 
         let empty_tx = "".to_string();
