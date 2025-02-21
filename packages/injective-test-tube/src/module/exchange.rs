@@ -156,10 +156,13 @@ mod tests {
     fn exchange_integration() {
         let app = InjectiveTestApp::new();
         let signer = app
-            .init_account(&[
-                Coin::new(10_000_000_000_000_000_000_000u128, "inj"),
-                Coin::new(100_000_000_000_000_000_000u128, "usdt"),
-            ])
+            .init_account_decimals(
+                &[
+                    Coin::new(10_000_000_000_000_000_000_000u128, "inj"),
+                    Coin::new(100_000_000_000_000_000_000u128, "usdt"),
+                ],
+                &[18u32, 6u32],
+            )
             .unwrap();
         let trader = app
             .init_account(&[
@@ -738,8 +741,8 @@ mod tests {
                     min_price_tick_size: "10000".to_owned(),
                     min_quantity_tick_size: "100000".to_owned(),
                     min_notional: "1".to_owned(),
-                    base_decimals: 0,
-                    quote_decimals: 0,
+                    base_decimals: 10,
+                    quote_decimals: 6,
                 },
                 &admin,
             )
