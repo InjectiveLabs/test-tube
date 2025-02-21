@@ -156,12 +156,9 @@ func InitAccountDecimals(envId uint64, coinsJson string, decimalsJson string) *C
 						Denom:    coin.Denom,
 						Exponent: 0,
 					},
-					{
-						Denom:    coin.Denom,
-						Exponent: decimals[i],
-					},
 				},
-				Base: coin.Denom,
+				Base:     coin.Denom,
+				Decimals: decimals[i],
 			}
 
 			env.App.BankKeeper.SetDenomMetaData(env.Ctx, denomMetaData)
