@@ -78,6 +78,17 @@ impl InjectiveTestApp {
     pub fn init_account(&self, coins: &[Coin]) -> RunnerResult<SigningAccount> {
         self.inner.init_account(coins)
     }
+
+    /// Initialize account with initial balance of any coins, defining decimals if not created.
+    /// This function mints new coins and send to newly created account
+    pub fn init_account_decimals(
+        &self,
+        coins: &[Coin],
+        decimals: &[u32],
+    ) -> RunnerResult<SigningAccount> {
+        self.inner.init_account_decimals(coins, decimals)
+    }
+
     /// Convenience function to create multiple accounts with the same
     /// Initial coins balance
     pub fn init_accounts(&self, coins: &[Coin], count: u64) -> RunnerResult<Vec<SigningAccount>> {
