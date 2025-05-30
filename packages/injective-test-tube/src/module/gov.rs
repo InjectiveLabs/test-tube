@@ -1,11 +1,6 @@
-use injective_std::types::cosmos::gov::v1::{
-    MsgSubmitProposal, MsgSubmitProposalResponse, MsgVote, MsgVoteResponse, QueryProposalRequest,
-    QueryProposalResponse,
-};
-use injective_std::types::cosmos::gov::v1beta1;
-use test_tube_inj::module::Module;
-use test_tube_inj::runner::Runner;
-use test_tube_inj::{fn_execute, fn_query};
+use injective_std::types::cosmos::gov::{v1, v1beta1};
+use test_tube_inj::{module::Module, runner::Runner, fn_execute, fn_query};
+
 
 pub struct Gov<'a, R: Runner<'a>> {
     runner: &'a R,
@@ -22,7 +17,7 @@ where
     R: Runner<'a>,
 {
     fn_execute! {
-        pub submit_proposal: MsgSubmitProposal => MsgSubmitProposalResponse
+        pub submit_proposal: v1::MsgSubmitProposal => v1::MsgSubmitProposalResponse
     }
 
     fn_execute! {
@@ -31,10 +26,17 @@ where
     }
 
     fn_execute! {
-        pub vote: MsgVote => MsgVoteResponse
+        pub vote: v1::MsgVote => v1::MsgVoteResponse
+    }
+
+    fn_execute! {
+        pub vote: v1::MsgVote_v1beta1 => v1beta1::MsgVoteResponse
     }
 
     fn_query! {
-        pub query_proposal ["/cosmos.gov.v1beta1.Query/Proposal"]: QueryProposalRequest => QueryProposalResponse
+        pub query_proposal ["/cosmos.gov.v1beta1.Query/Proposal"]: v1::QueryProposalRequest => v1::QueryProposalResponse
+    }
+    fn_query! {
+        pub query_proposal_v1beta1 ["/cosmos.gov.v1beta1.Query/Proposal"]: v1beta1::QueryProposalRequest => v1beta1::QueryProposalResponse
     }
 }
