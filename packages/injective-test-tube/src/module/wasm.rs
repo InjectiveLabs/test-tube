@@ -6,11 +6,13 @@ use injective_std::types::cosmwasm::wasm::v1::{
 };
 use serde::{de::DeserializeOwned, Serialize};
 
-use test_tube_inj::runner::error::{DecodeError, EncodeError, RunnerError};
-use test_tube_inj::runner::result::{RunnerExecuteResult, RunnerResult};
 use test_tube_inj::{
     account::{Account, SigningAccount},
-    runner::Runner,
+    runner::{
+        error::{DecodeError, EncodeError, RunnerError},
+        result::{RunnerExecuteResult, RunnerResult},
+        Runner,
+    },
 };
 
 pub struct Wasm<'a, R: Runner<'a>> {

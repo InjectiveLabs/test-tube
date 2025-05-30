@@ -6,9 +6,7 @@ use injective_std::types::injective::tokenfactory::v1beta1::{
     QueryDenomsFromCreatorResponse, QueryParamsRequest, QueryParamsResponse,
 };
 
-use test_tube_inj::module::Module;
-use test_tube_inj::runner::Runner;
-use test_tube_inj::{fn_execute, fn_query};
+use test_tube_inj::{fn_execute, fn_query, module::Module, runner::Runner};
 
 pub struct TokenFactory<'a, R: Runner<'a>> {
     runner: &'a R,
