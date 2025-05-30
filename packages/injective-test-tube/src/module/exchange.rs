@@ -757,7 +757,7 @@ mod tests {
         exchange_params.max_derivative_order_side_count = 300u32;
 
         // NOTE: this could change int he future
-        let governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
+        let _governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
 
         let proposal = v1beta1::BatchExchangeModificationProposal {
             title: "Update params".to_string(),
@@ -825,7 +825,14 @@ mod tests {
         .unwrap();
 
         // Increase time to pass the proposal
-        app.increase_time(100u64);
+        app.increase_time(20u64);
+
+        let prop_response = gov
+            .query_proposal_v1beta1(&gov_v1beta1::QueryProposalRequest {
+                proposal_id: u64::from_str(&proposal_id).unwrap(),
+            })
+            .unwrap();
+        assert_eq!(prop_response.proposal.unwrap().status, 3i32); // 3 is the status for Passed
 
         exchange
             .instant_spot_market_launch(
