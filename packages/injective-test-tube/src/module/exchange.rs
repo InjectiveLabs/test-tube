@@ -233,6 +233,14 @@ where
     fn_query! {
         pub query_is_opted_out_of_rewards_v2 ["/injective.exchange.v2.Query/IsOptedOutOfRewards"]: v2::QueryIsOptedOutOfRewardsRequest => v2::QueryIsOptedOutOfRewardsResponse
     }
+
+    fn_query! {
+        pub query_denom_min_notionals ["/injective.exchange.v1beta1.Query/DenomMinNotionals"]: v1beta1::QueryDenomMinNotionalsRequest => v1beta1::QueryDenomMinNotionalsResponse
+    }
+
+    fn_query! {
+        pub query_denom_min_notionals_v2 ["/injective.exchange.v2.Query/DenomMinNotionals"]: v2::QueryDenomMinNotionalsRequest => v2::QueryDenomMinNotionalsResponse
+    }
 }
 
 #[cfg(test)]
@@ -251,6 +259,7 @@ mod tests {
             gov::v1beta1 as gov_v1beta1,
         },
         injective::exchange::v1beta1,
+        injective::exchange::v2,
     };
     use prost::Message;
     use std::str::FromStr;
@@ -756,10 +765,15 @@ mod tests {
         exchange_params.exchange_admins.push(admin.address());
         exchange_params.max_derivative_order_side_count = 300u32;
 
+        let denom_min_notionals = exchange
+            .query_denom_min_notionals(&v1beta1::QueryDenomMinNotionalsRequest {})
+            .unwrap();
+        println!("{:?}", denom_min_notionals);
+
         // NOTE: this could change int he future
         let _governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
 
-        let proposal = v1beta1::BatchExchangeModificationProposal {
+        let proposal = v2::BatchExchangeModificationProposal {
             title: "Update params".to_string(),
             description: "Basically updating the params".to_string(),
             spot_market_param_update_proposals: vec![],
@@ -773,13 +787,19 @@ mod tests {
             denom_decimals_update_proposal: None,
             fee_discount_proposal: None,
             market_forced_settlement_proposals: vec![],
-            denom_min_notional_proposal: Some(v1beta1::DenomMinNotionalProposal {
+            denom_min_notional_proposal: Some(v2::DenomMinNotionalProposal {
                 title: "Update min notional".to_string(),
                 description: "Love it!".to_string(),
-                denom_min_notionals: vec![v1beta1::DenomMinNotional {
-                    denom: "usdt".to_string(),
-                    min_notional: "1".to_string(),
-                }],
+                denom_min_notionals: vec![
+                    v2::DenomMinNotional {
+                        denom: "inj".to_string(),
+                        min_notional: "1".to_string(),
+                    },
+                    v2::DenomMinNotional {
+                        denom: "usdt".to_string(),
+                        min_notional: "1".to_string(),
+                    },
+                ],
             }),
         };
 
@@ -787,7 +807,7 @@ mod tests {
         proposal.encode(&mut buf).unwrap();
 
         let content_any = Any {
-            type_url: "/injective.exchange.v1beta1.BatchExchangeModificationProposal".to_string(),
+            type_url: "/injective.exchange.v2.BatchExchangeModificationProposal".to_string(),
             value: buf,
         };
 
@@ -832,7 +852,35 @@ mod tests {
                 proposal_id: u64::from_str(&proposal_id).unwrap(),
             })
             .unwrap();
-        assert_eq!(prop_response.proposal.unwrap().status, 3i32); // 3 is the status for Passed
+        assert_eq!(prop_response.clone().proposal.unwrap().status, 3i32); // 3 is the status for Passed
+
+        println!("{:?}", prop_response);
+
+        let denom_min_notionals = exchange
+            .query_denom_min_notionals(&v1beta1::QueryDenomMinNotionalsRequest {})
+            .unwrap();
+        println!("{:?}", denom_min_notionals);
+
+        // Increase time to pass the proposal
+        app.increase_time(200u64);
+
+        bank.send(
+            MsgSend {
+                from_address: signer.address(),
+                to_address: validator.address(),
+                amount: vec![SDKCoin {
+                    amount: "1000000000000000000000".to_string(),
+                    denom: "inj".to_string(),
+                }],
+            },
+            &signer,
+        )
+        .unwrap();
+
+        let denom_min_notionals = exchange
+            .query_denom_min_notionals(&v1beta1::QueryDenomMinNotionalsRequest {})
+            .unwrap();
+        println!("{:?}", denom_min_notionals);
 
         exchange
             .instant_spot_market_launch(
@@ -843,7 +891,7 @@ mod tests {
                     quote_denom: "usdt".to_owned(),
                     min_price_tick_size: "10000".to_owned(),
                     min_quantity_tick_size: "100000".to_owned(),
-                    min_notional: "1".to_owned(),
+                    min_notional: "1000000".to_owned(),
                     base_decimals: 10,
                     quote_decimals: 6,
                 },
