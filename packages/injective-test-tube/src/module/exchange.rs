@@ -771,11 +771,6 @@ mod tests {
         exchange_params.exchange_admins.push(admin.address());
         exchange_params.max_derivative_order_side_count = 300u32;
 
-        let denom_min_notionals = exchange
-            .query_denom_min_notionals(&v1beta1::QueryDenomMinNotionalsRequest {})
-            .unwrap();
-        println!("{:?}", denom_min_notionals);
-
         // NOTE: this could change in the future
         let _governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
 
@@ -875,11 +870,6 @@ mod tests {
             &signer,
         )
         .unwrap();
-
-        let denom_min_notionals = exchange
-            .query_denom_min_notionals(&v1beta1::QueryDenomMinNotionalsRequest {})
-            .unwrap();
-        println!("{:?}", denom_min_notionals);
 
         exchange
             .instant_spot_market_launch_v2(
