@@ -2,6 +2,7 @@ package testenv
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -33,6 +34,7 @@ import (
 	"github.com/InjectiveLabs/injective-core/injective-chain/app"
 	injcodectypes "github.com/InjectiveLabs/injective-core/injective-chain/codec/types"
 	exchangetypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/exchange/types"
+	exchangetypesv2 "github.com/InjectiveLabs/injective-core/injective-chain/modules/exchange/types/v2"
 	tokenfactorytypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/tokenfactory/types"
 	wasmxtypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/wasmx/types"
 )
@@ -123,9 +125,12 @@ func InitChain(appInstance *app.InjectiveApp) (sdk.Context, secp256k1.PrivKey) {
 
 	genesisState[govtypes.ModuleName] = encCfg.Codec.MustMarshalJSON(&govGen)
 
-	exchangeParams := exchangetypes.Params{}
+	exchangeParams := exchangetypesv2.DefaultParams()
 	exchangeParams.IsInstantDerivativeMarketLaunchEnabled = true
-	exchangeGen := exchangetypes.GenesisState{
+
+	fmt.Println("Exchange Params:", exchangeParams)
+
+	exchangeGen := exchangetypesv2.GenesisState{
 		Params: exchangeParams,
 	}
 	genesisState[exchangetypes.ModuleName] = encCfg.Codec.MustMarshalJSON(&exchangeGen)

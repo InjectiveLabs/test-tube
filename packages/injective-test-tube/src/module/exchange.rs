@@ -255,7 +255,7 @@ mod tests {
             authz::v1beta1::{GenericAuthorization, Grant, MsgExec, MsgGrant},
             bank::v1beta1::MsgSend,
             base::v1beta1::Coin as SDKCoin,
-            gov::v1::{MsgSubmitProposal, MsgVote},
+            gov::v1::MsgVote,
             gov::v1beta1 as gov_v1beta1,
         },
         injective::exchange::v1beta1,
@@ -329,14 +329,14 @@ mod tests {
             )
             .unwrap();
 
-        let mut exchange_params = res.params.unwrap();
+        let mut exchange_params = res.params.clone().unwrap();
         exchange_params.exchange_admins.push(admin.address());
         exchange_params.max_derivative_order_side_count = 300u32;
 
-        // NOTE: this could change int he future
-        let governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
+        // NOTE: this could change in the future
+        let _governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
 
-        let proposal = v1beta1::BatchExchangeModificationProposal {
+        let proposal = v2::BatchExchangeModificationProposal {
             title: "Update params".to_string(),
             description: "Basically updating the params".to_string(),
             spot_market_param_update_proposals: vec![],
@@ -350,45 +350,41 @@ mod tests {
             denom_decimals_update_proposal: None,
             fee_discount_proposal: None,
             market_forced_settlement_proposals: vec![],
-            denom_min_notional_proposal: Some(v1beta1::DenomMinNotionalProposal {
+            denom_min_notional_proposal: Some(v2::DenomMinNotionalProposal {
                 title: "Update min notional".to_string(),
                 description: "Love it!".to_string(),
-                denom_min_notionals: vec![v1beta1::DenomMinNotional {
-                    denom: "usdt".to_string(),
-                    min_notional: "1".to_string(),
-                }],
+                denom_min_notionals: vec![
+                    v2::DenomMinNotional {
+                        denom: "inj".to_string(),
+                        min_notional: "1".to_string(),
+                    },
+                    v2::DenomMinNotional {
+                        denom: "usdt".to_string(),
+                        min_notional: "1".to_string(),
+                    },
+                ],
             }),
         };
 
         let mut buf = vec![];
-        v1beta1::MsgBatchExchangeModification::encode(
-            &v1beta1::MsgBatchExchangeModification {
-                sender: governance_module_address.to_string(),
-                proposal: Some(proposal),
-            },
-            &mut buf,
-        )
-        .unwrap();
+        proposal.encode(&mut buf).unwrap();
+
+        let content_any = Any {
+            type_url: "/injective.exchange.v2.BatchExchangeModificationProposal".to_string(),
+            value: buf,
+        };
+
+        let msg_submit_proposal = gov_v1beta1::MsgSubmitProposal {
+            content: Some(content_any),
+            initial_deposit: vec![SDKCoin {
+                amount: "100000000000000000000".to_string(),
+                denom: "inj".to_string(),
+            }],
+            proposer: validator.address(),
+        };
 
         let res = gov
-            .submit_proposal(
-                MsgSubmitProposal {
-                    messages: vec![Any {
-                        type_url: v1beta1::MsgBatchExchangeModification::TYPE_URL.to_string(),
-                        value: buf,
-                    }],
-                    initial_deposit: vec![SDKCoin {
-                        amount: "100000000000000000000".to_string(),
-                        denom: "inj".to_string(),
-                    }],
-                    proposer: validator.address(),
-                    metadata: "".to_string(),
-                    title: "Update params".to_string(),
-                    summary: "Basically updating the params".to_string(),
-                    expedited: false,
-                },
-                &validator,
-            )
+            .submit_proposal_v1beta1(msg_submit_proposal, &validator)
             .unwrap();
 
         let proposal_id = res
@@ -412,17 +408,27 @@ mod tests {
         .unwrap();
 
         // Increase time to pass the proposal
-        app.increase_time(300u64);
+        app.increase_time(20u64);
+
+        let prop_response = gov
+            .query_proposal_v1beta1(&gov_v1beta1::QueryProposalRequest {
+                proposal_id: u64::from_str(&proposal_id).unwrap(),
+            })
+            .unwrap();
+        assert_eq!(prop_response.clone().proposal.unwrap().status, 3i32); // 3 is the status for Passed
+
+        // Increase time to pass the proposal
+        app.increase_time(200u64);
 
         exchange
-            .instant_spot_market_launch(
-                v1beta1::MsgInstantSpotMarketLaunch {
+            .instant_spot_market_launch_v2(
+                v2::MsgInstantSpotMarketLaunch {
                     sender: admin.address(),
                     ticker: "INJ/USDT".to_owned(),
                     base_denom: "inj".to_owned(),
                     quote_denom: "usdt".to_owned(),
-                    min_price_tick_size: "10000".to_owned(),
-                    min_quantity_tick_size: "100000".to_owned(),
+                    min_price_tick_size: "1".to_owned(),
+                    min_quantity_tick_size: "1".to_owned(),
                     min_notional: "1".to_owned(),
                     base_decimals: 18,
                     quote_decimals: 6,
@@ -432,15 +438,15 @@ mod tests {
             .unwrap();
 
         exchange
-            .instant_spot_market_launch(
-                v1beta1::MsgInstantSpotMarketLaunch {
+            .instant_spot_market_launch_v2(
+                v2::MsgInstantSpotMarketLaunch {
                     sender: signer.address(),
                     ticker: "INJ/USDT".to_owned(),
                     base_denom: "inj".to_owned(),
                     quote_denom: "usdt".to_owned(),
-                    min_price_tick_size: "10000".to_owned(),
-                    min_quantity_tick_size: "100000".to_owned(),
-                    min_notional: "100000".to_owned(),
+                    min_price_tick_size: "10".to_owned(),
+                    min_quantity_tick_size: "1".to_owned(),
+                    min_notional: "1".to_owned(),
                     base_decimals: 18,
                     quote_decimals: 6,
                 },
@@ -449,14 +455,14 @@ mod tests {
             .unwrap_err();
 
         let spot_markets = exchange
-            .query_spot_markets(&v1beta1::QuerySpotMarketsRequest {
+            .query_spot_markets_v2(&v2::QuerySpotMarketsRequest {
                 status: "Active".to_owned(),
                 market_ids: vec![],
             })
             .unwrap();
 
-        let expected_response = v1beta1::QuerySpotMarketsResponse {
-            markets: vec![v1beta1::SpotMarket {
+        let expected_response = v2::QuerySpotMarketsResponse {
+            markets: vec![v2::SpotMarket {
                 ticker: "INJ/USDT".to_string(),
                 base_denom: "inj".to_string(),
                 quote_denom: "usdt".to_string(),
@@ -466,8 +472,8 @@ mod tests {
                 market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
                     .to_string(),
                 status: v1beta1::MarketStatus::Active.into(),
-                min_price_tick_size: "10000".to_string(),
-                min_quantity_tick_size: "100000".to_string(),
+                min_price_tick_size: "1".to_string(),
+                min_quantity_tick_size: "1".to_string(),
                 min_notional: "1".to_string(),
                 admin: "".to_string(),
                 admin_permissions: 0u32,
@@ -770,7 +776,7 @@ mod tests {
             .unwrap();
         println!("{:?}", denom_min_notionals);
 
-        // NOTE: this could change int he future
+        // NOTE: this could change in the future
         let _governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
 
         let proposal = v2::BatchExchangeModificationProposal {
@@ -854,13 +860,6 @@ mod tests {
             .unwrap();
         assert_eq!(prop_response.clone().proposal.unwrap().status, 3i32); // 3 is the status for Passed
 
-        println!("{:?}", prop_response);
-
-        let denom_min_notionals = exchange
-            .query_denom_min_notionals(&v1beta1::QueryDenomMinNotionalsRequest {})
-            .unwrap();
-        println!("{:?}", denom_min_notionals);
-
         // Increase time to pass the proposal
         app.increase_time(200u64);
 
@@ -883,8 +882,8 @@ mod tests {
         println!("{:?}", denom_min_notionals);
 
         exchange
-            .instant_spot_market_launch(
-                v1beta1::MsgInstantSpotMarketLaunch {
+            .instant_spot_market_launch_v2(
+                v2::MsgInstantSpotMarketLaunch {
                     sender: admin.address(),
                     ticker: "INJ/USDT".to_owned(),
                     base_denom: "inj".to_owned(),
