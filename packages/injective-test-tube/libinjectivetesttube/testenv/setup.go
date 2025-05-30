@@ -5,13 +5,12 @@ import (
 	"strings"
 	"time"
 
-	// tendermint
 	"cosmossdk.io/log"
 	"cosmossdk.io/math"
 	abci "github.com/cometbft/cometbft/abci/types"
 
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
-	tmtypes "github.com/cometbft/cometbft/types"
+	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
+	cmtypes "github.com/cometbft/cometbft/types"
 
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -37,6 +36,23 @@ import (
 	tokenfactorytypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/tokenfactory/types"
 	wasmxtypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/wasmx/types"
 )
+
+var DefaultConsensusParams = &cmtproto.ConsensusParams{
+	Block: &cmtproto.BlockParams{
+		MaxBytes: 200000,
+		MaxGas:   150000000, // mainnet value
+	},
+	Evidence: &cmtproto.EvidenceParams{
+		MaxAgeNumBlocks: 302400,
+		MaxAgeDuration:  504 * time.Hour, // 3 weeks is the max duration
+		MaxBytes:        10000,
+	},
+	Validator: &cmtproto.ValidatorParams{
+		PubKeyTypes: []string{
+			cmtypes.ABCIPubKeyTypeEd25519,
+		},
+	},
+}
 
 type TestEnv struct {
 	App                *app.InjectiveApp
@@ -107,13 +123,13 @@ func InitChain(appInstance *app.InjectiveApp) (sdk.Context, secp256k1.PrivKey) {
 
 	genesisState[govtypes.ModuleName] = encCfg.Codec.MustMarshalJSON(&govGen)
 
-	// Set up exchange genesis state
-	exchangeParams := exchangetypes.DefaultParams()
-	exchangeParams.IsInstantDerivativeMarketLaunchEnabled = true
-	exchangeGen := exchangetypes.GenesisState{
-		Params: exchangeParams,
-	}
-	genesisState[exchangetypes.ModuleName] = encCfg.Codec.MustMarshalJSON(&exchangeGen)
+	//// Set up exchange genesis state
+	//exchangeParams := exchangetypes.DefaultParams()
+	//exchangeParams.IsInstantDerivativeMarketLaunchEnabled = true
+	//exchangeGen := exchangetypes.GenesisState{
+	//	Params: exchangeParams,
+	//}
+	//genesisState[exchangetypes.ModuleName] = encCfg.Codec.MustMarshalJSON(&exchangeGen)
 
 	// Set up wasmx genesis state
 	wasmxGen := wasmxtypes.GenesisState{
@@ -130,26 +146,20 @@ func InitChain(appInstance *app.InjectiveApp) (sdk.Context, secp256k1.PrivKey) {
 
 	requireNoErr(err)
 
-	consensusParams := simtestutil.DefaultConsensusParams
-	consensusParams.Block = &tmproto.BlockParams{
-		MaxBytes: 22020096,
-		MaxGas:   -1,
-	}
-
 	// replace sdk.DefaultDenom with "inj", a bit of a hack, needs improvement
 	stateBytes = []byte(strings.Replace(string(stateBytes), "\"stake\"", "\"inj\"", -1))
 
 	_, err = appInstance.InitChain(
-		&abci.RequestInitChain{
+		&abci.InitChainRequest{
 			ChainId:         "injective-777",
 			Validators:      []abci.ValidatorUpdate{},
-			ConsensusParams: consensusParams,
+			ConsensusParams: DefaultConsensusParams,
 			AppStateBytes:   stateBytes,
 		},
 	)
 	requireNoErr(err)
 
-	ctx := appInstance.NewUncachedContext(false, tmproto.Header{Height: 0, ChainID: "injective-777", Time: time.Now().UTC()})
+	ctx := appInstance.NewUncachedContext(false, cmtproto.Header{Height: 0, ChainID: "injective-777", Time: time.Now().UTC()})
 
 	return ctx, valPriv
 }
@@ -157,8 +167,8 @@ func InitChain(appInstance *app.InjectiveApp) (sdk.Context, secp256k1.PrivKey) {
 func GenesisStateWithValSet(appInstance *app.InjectiveApp) (app.GenesisState, secp256k1.PrivKey) {
 	privVal := NewPV()
 	pubKey, _ := privVal.GetPubKey()
-	validator := tmtypes.NewValidator(pubKey, 1)
-	valSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
+	validator := cmtypes.NewValidator(pubKey, 1)
+	valSet := cmtypes.NewValidatorSet([]*cmtypes.Validator{validator})
 
 	// generate genesis account
 	senderPrivKey := secp256k1.GenPrivKey()

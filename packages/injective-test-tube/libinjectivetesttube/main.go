@@ -66,7 +66,7 @@ func InitTestEnv() uint64 {
 	newCtx := env.Ctx.WithBlockTime(newBlockTime).WithBlockHeight(env.Ctx.BlockHeight() + 1)
 	env.Ctx = newCtx
 
-	reqFinalizeBlock := abci.RequestFinalizeBlock{Height: env.Ctx.BlockHeight(), Txs: [][]byte{}, Time: newBlockTime}
+	reqFinalizeBlock := abci.FinalizeBlockRequest{Height: env.Ctx.BlockHeight(), Txs: [][]byte{}, Time: newBlockTime}
 
 	env.App.FinalizeBlock(&reqFinalizeBlock)
 	env.App.Commit()

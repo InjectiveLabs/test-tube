@@ -1,4 +1,5 @@
 use injective_std::types::injective::exchange::v1beta1;
+use injective_std::types::injective::exchange::v2::{MsgInstantPerpetualMarketLaunch, MsgInstantPerpetualMarketLaunchResponse};
 use test_tube_inj::module::Module;
 use test_tube_inj::runner::Runner;
 use test_tube_inj::{fn_execute, fn_query};
@@ -46,7 +47,7 @@ where
     }
 
     fn_execute! {
-        pub instant_perpetual_market_launch: v1beta1::MsgInstantPerpetualMarketLaunch => v1beta1::MsgInstantPerpetualMarketLaunchResponse
+        pub instant_perpetual_market_launch: MsgInstantPerpetualMarketLaunch => MsgInstantPerpetualMarketLaunchResponse
     }
 
     fn_execute! {
