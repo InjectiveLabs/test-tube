@@ -123,13 +123,12 @@ func InitChain(appInstance *app.InjectiveApp) (sdk.Context, secp256k1.PrivKey) {
 
 	genesisState[govtypes.ModuleName] = encCfg.Codec.MustMarshalJSON(&govGen)
 
-	//// Set up exchange genesis state
-	//exchangeParams := exchangetypes.DefaultParams()
-	//exchangeParams.IsInstantDerivativeMarketLaunchEnabled = true
-	//exchangeGen := exchangetypes.GenesisState{
-	//	Params: exchangeParams,
-	//}
-	//genesisState[exchangetypes.ModuleName] = encCfg.Codec.MustMarshalJSON(&exchangeGen)
+	exchangeParams := exchangetypes.Params{}
+	exchangeParams.IsInstantDerivativeMarketLaunchEnabled = true
+	exchangeGen := exchangetypes.GenesisState{
+		Params: exchangeParams,
+	}
+	genesisState[exchangetypes.ModuleName] = encCfg.Codec.MustMarshalJSON(&exchangeGen)
 
 	// Set up wasmx genesis state
 	wasmxGen := wasmxtypes.GenesisState{
