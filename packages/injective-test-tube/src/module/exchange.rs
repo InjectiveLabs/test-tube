@@ -248,6 +248,7 @@ mod tests {
             bank::v1beta1::MsgSend,
             base::v1beta1::Coin as SDKCoin,
             gov::v1::{MsgSubmitProposal, MsgVote},
+            gov::v1beta1 as gov_v1beta1,
         },
         injective::exchange::v1beta1,
     };
@@ -402,7 +403,7 @@ mod tests {
         .unwrap();
 
         // Increase time to pass the proposal
-        app.increase_time(100u64);
+        app.increase_time(300u64);
 
         exchange
             .instant_spot_market_launch(
@@ -783,34 +784,24 @@ mod tests {
         };
 
         let mut buf = vec![];
-        v1beta1::MsgBatchExchangeModification::encode(
-            &v1beta1::MsgBatchExchangeModification {
-                sender: governance_module_address.to_string(),
-                proposal: Some(proposal),
-            },
-            &mut buf,
-        )
-        .unwrap();
+        proposal.encode(&mut buf).unwrap();
+
+        let content_any = Any {
+            type_url: "/injective.exchange.v1beta1.BatchExchangeModificationProposal".to_string(),
+            value: buf,
+        };
+
+        let msg_submit_proposal = gov_v1beta1::MsgSubmitProposal {
+            content: Some(content_any),
+            initial_deposit: vec![SDKCoin {
+                amount: "100000000000000000000".to_string(),
+                denom: "inj".to_string(),
+            }],
+            proposer: validator.address(),
+        };
 
         let res = gov
-            .submit_proposal(
-                MsgSubmitProposal {
-                    messages: vec![Any {
-                        type_url: v1beta1::MsgBatchExchangeModification::TYPE_URL.to_string(),
-                        value: buf,
-                    }],
-                    initial_deposit: vec![SDKCoin {
-                        amount: "100000000000000000000".to_string(),
-                        denom: "inj".to_string(),
-                    }],
-                    proposer: validator.address(),
-                    metadata: "".to_string(),
-                    title: "Update params".to_string(),
-                    summary: "Basically updating the params".to_string(),
-                    expedited: false,
-                },
-                &validator,
-            )
+            .submit_proposal_v1beta1(msg_submit_proposal, &validator)
             .unwrap();
 
         let proposal_id = res
