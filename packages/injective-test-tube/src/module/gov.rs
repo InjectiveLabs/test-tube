@@ -1,6 +1,5 @@
 use injective_std::types::cosmos::gov::{v1, v1beta1};
-use test_tube_inj::{module::Module, runner::Runner, fn_execute, fn_query};
-
+use test_tube_inj::{fn_execute, fn_query, module::Module, runner::Runner};
 
 pub struct Gov<'a, R: Runner<'a>> {
     runner: &'a R,
@@ -30,7 +29,7 @@ where
     }
 
     fn_execute! {
-        pub vote: v1::MsgVote_v1beta1 => v1beta1::MsgVoteResponse
+        pub vote_v1beta1: v1beta1::MsgVote => v1beta1::MsgVoteResponse
     }
 
     fn_query! {

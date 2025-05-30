@@ -1,8 +1,8 @@
 use injective_std::types::injective::exchange::v1beta1;
-use injective_std::types::injective::exchange::v2::{MsgInstantPerpetualMarketLaunch, MsgInstantPerpetualMarketLaunchResponse};
-use test_tube_inj::module::Module;
-use test_tube_inj::runner::Runner;
-use test_tube_inj::{fn_execute, fn_query};
+use injective_std::types::injective::exchange::v2::{
+    MsgInstantPerpetualMarketLaunch, MsgInstantPerpetualMarketLaunchResponse,
+};
+use test_tube_inj::{fn_execute, fn_query, module::Module, runner::Runner};
 
 pub struct Exchange<'a, R: Runner<'a>> {
     runner: &'a R,
