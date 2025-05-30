@@ -1,7 +1,4 @@
-use injective_std::types::injective::exchange::v1beta1;
-use injective_std::types::injective::exchange::v2::{
-    MsgInstantPerpetualMarketLaunch, MsgInstantPerpetualMarketLaunchResponse,
-};
+use injective_std::types::injective::exchange::{v1beta1, v2};
 use test_tube_inj::{fn_execute, fn_query, module::Module, runner::Runner};
 
 pub struct Exchange<'a, R: Runner<'a>> {
@@ -23,7 +20,15 @@ where
     }
 
     fn_execute! {
+        pub instant_spot_market_launch_v2: v2::MsgInstantSpotMarketLaunch => v2::MsgInstantSpotMarketLaunchResponse
+    }
+
+    fn_execute! {
         pub batch_exchange_modification: v1beta1::MsgBatchExchangeModification => v1beta1::MsgBatchExchangeModificationResponse
+    }
+
+    fn_execute! {
+        pub batch_exchange_modification_v2: v2::MsgBatchExchangeModification => v2::MsgBatchExchangeModificationResponse
     }
 
     fn_execute! {
@@ -31,7 +36,15 @@ where
     }
 
     fn_execute! {
+        pub create_spot_limit_order_v2: v2::MsgCreateSpotLimitOrder => v2::MsgCreateSpotLimitOrderResponse
+    }
+
+    fn_execute! {
         pub create_derivative_limit_order: v1beta1::MsgCreateDerivativeLimitOrder => v1beta1::MsgCreateDerivativeLimitOrderResponse
+    }
+
+    fn_execute! {
+        pub create_derivative_limit_order_v2: v2::MsgCreateDerivativeLimitOrder => v2::MsgCreateDerivativeLimitOrderResponse
     }
 
     fn_execute! {
@@ -39,7 +52,15 @@ where
     }
 
     fn_execute! {
+        pub cancel_spot_order_v2: v2::MsgCancelSpotOrder => v2::MsgCancelSpotOrderResponse
+    }
+
+    fn_execute! {
         pub cancel_derivative_order: v1beta1::MsgCancelDerivativeOrder => v1beta1::MsgCancelDerivativeOrderResponse
+    }
+
+    fn_execute! {
+        pub cancel_derivative_order_v2: v2::MsgCancelDerivativeOrder => v2::MsgCancelDerivativeOrderResponse
     }
 
     fn_execute! {
@@ -47,7 +68,11 @@ where
     }
 
     fn_execute! {
-        pub instant_perpetual_market_launch: MsgInstantPerpetualMarketLaunch => MsgInstantPerpetualMarketLaunchResponse
+        pub batch_update_orders_v2: v2::MsgBatchUpdateOrders => v2::MsgBatchUpdateOrdersResponse
+    }
+
+    fn_execute! {
+        pub instant_perpetual_market_launch: v2::MsgInstantPerpetualMarketLaunch => v2::MsgInstantPerpetualMarketLaunchResponse
     }
 
     fn_execute! {
@@ -55,11 +80,23 @@ where
     }
 
     fn_execute! {
+        pub privileged_execute_contract_v2: v2::MsgPrivilegedExecuteContract => v2::MsgPrivilegedExecuteContractResponse
+    }
+
+    fn_execute! {
         pub deposit: v1beta1::MsgDeposit => v1beta1::MsgDepositResponse
     }
 
     fn_execute! {
+        pub deposit_v2: v2::MsgDeposit => v2::MsgDepositResponse
+    }
+
+    fn_execute! {
         pub withdraw: v1beta1::MsgWithdraw => v1beta1::MsgWithdrawResponse
+    }
+
+    fn_execute! {
+        pub withdraw_v2: v2::MsgWithdraw => v2::MsgWithdrawResponse
     }
 
     fn_query! {
@@ -67,11 +104,22 @@ where
     }
 
     fn_query! {
+        pub query_spot_markets_v2 ["/injective.exchange.v2.Query/SpotMarkets"]: v2::QuerySpotMarketsRequest => v2::QuerySpotMarketsResponse
+    }
+
+    fn_query! {
         pub query_spot_market ["/injective.exchange.v1beta1.Query/SpotMarket"]: v1beta1::QuerySpotMarketRequest => v1beta1::QuerySpotMarketResponse
     }
 
     fn_query! {
+        pub query_spot_market_v2 ["/injective.exchange.v2.Query/SpotMarket"]: v2::QuerySpotMarketRequest => v2::QuerySpotMarketResponse
+    }
+
+    fn_query! {
         pub query_spot_mid_price_and_tob ["/injective.exchange.v1beta1.Query/SpotMidPriceAndTOB"]: v1beta1::QuerySpotMidPriceAndTobRequest => v1beta1::QuerySpotMidPriceAndTobResponse
+    }
+    fn_query! {
+        pub query_spot_mid_price_and_tob_v2 ["/injective.exchange.v2.Query/SpotMidPriceAndTOB"]: v2::QuerySpotMidPriceAndTobRequest => v2::QuerySpotMidPriceAndTobResponse
     }
 
     fn_query! {
@@ -79,7 +127,15 @@ where
     }
 
     fn_query! {
+        pub query_derivative_markets_v2 ["/injective.exchange.v2.Query/DerivativeMarkets"]: v2::QueryDerivativeMarketsRequest => v2::QueryDerivativeMarketsResponse
+    }
+
+    fn_query! {
         pub query_derivative_market ["/injective.exchange.v1beta1.Query/DerivativeMarket"]: v1beta1::QueryDerivativeMarketRequest => v1beta1::QueryDerivativeMarketResponse
+    }
+
+    fn_query! {
+        pub query_derivative_market_v2 ["/injective.exchange.v2.Query/DerivativeMarket"]: v2::QueryDerivativeMarketRequest => v2::QueryDerivativeMarketResponse
     }
 
     fn_query! {
@@ -87,7 +143,15 @@ where
     }
 
     fn_query! {
+        pub query_derivative_mid_price_and_tob_v2 ["/injective.exchange.v2.Query/DerivativeMidPriceAndTOB"]: v2::QueryDerivativeMidPriceAndTobRequest => v2::QueryDerivativeMidPriceAndTobResponse
+    }
+
+    fn_query! {
         pub query_subaccount_deposits ["/injective.exchange.v1beta1.Query/SubaccountDeposits"]: v1beta1::QuerySubaccountDepositsRequest => v1beta1::QuerySubaccountDepositsResponse
+    }
+
+    fn_query! {
+        pub query_subaccount_deposits_v2 ["/injective.exchange.v2.Query/SubaccountDeposits"]: v2::QuerySubaccountDepositsRequest => v2::QuerySubaccountDepositsResponse
     }
 
     fn_query! {
@@ -95,7 +159,15 @@ where
     }
 
     fn_query! {
+        pub query_spot_market_orderbook_v2 ["/injective.exchange.v2.Query/SpotOrderbook"]: v2::QuerySpotOrderbookRequest => v2::QuerySpotOrderbookResponse
+    }
+
+    fn_query! {
         pub query_derivative_market_orderbook ["/injective.exchange.v1beta1.Query/DerivativeOrderbook"]: v1beta1::QueryDerivativeOrderbookRequest => v1beta1::QueryDerivativeOrderbookResponse
+    }
+
+    fn_query! {
+        pub query_derivative_market_orderbook_v2 ["/injective.exchange.v2.Query/DerivativeOrderbook"]: v2::QueryDerivativeOrderbookRequest => v2::QueryDerivativeOrderbookResponse
     }
 
     fn_query! {
@@ -103,7 +175,15 @@ where
     }
 
     fn_query! {
+        pub query_trader_spot_orders_v2 ["/injective.exchange.v2.Query/TraderSpotOrders"]: v2::QueryTraderSpotOrdersRequest => v2::QueryTraderSpotOrdersResponse
+    }
+
+    fn_query! {
         pub query_trader_derivative_orders ["/injective.exchange.v1beta1.Query/TraderDerivativeOrders"]: v1beta1::QueryTraderDerivativeOrdersRequest => v1beta1::QueryTraderDerivativeOrdersResponse
+    }
+
+    fn_query! {
+        pub query_trader_derivative_orders_v2 ["/injective.exchange.v2.Query/TraderDerivativeOrders"]: v2::QueryTraderDerivativeOrdersRequest => v2::QueryTraderDerivativeOrdersResponse
     }
 
     fn_query! {
@@ -111,7 +191,15 @@ where
     }
 
     fn_query! {
+        pub query_positions_v2 ["/injective.exchange.v2.Query/Positions"]: v2::QueryPositionsRequest => v2::QueryPositionsResponse
+    }
+
+    fn_query! {
         pub query_subaccount_positions ["/injective.exchange.v1beta1.Query/SubaccountPositions"]: v1beta1::QuerySubaccountPositionsRequest => v1beta1::QuerySubaccountPositionsResponse
+    }
+
+    fn_query! {
+        pub query_subaccount_positions_v2 ["/injective.exchange.v2.Query/SubaccountPositions"]: v2::QuerySubaccountPositionsRequest => v2::QuerySubaccountPositionsResponse
     }
 
     fn_query! {
@@ -119,7 +207,15 @@ where
     }
 
     fn_query! {
+        pub query_subaccount_position_in_market_v2 ["/injective.exchange.v2.Query/SubaccountPositionInMarket"]: v2::QuerySubaccountPositionInMarketRequest => v2::QuerySubaccountPositionInMarketResponse
+    }
+
+    fn_query! {
         pub query_subaccount_effective_position_in_market ["/injective.exchange.v1beta1.Query/SubaccountEffectivePositionInMarket"]: v1beta1::QuerySubaccountEffectivePositionInMarketRequest => v1beta1::QuerySubaccountEffectivePositionInMarketResponse
+    }
+
+    fn_query! {
+        pub query_subaccount_effective_position_in_market_v2 ["/injective.exchange.v2.Query/SubaccountEffectivePositionInMarket"]: v2::QuerySubaccountEffectivePositionInMarketRequest => v2::QuerySubaccountEffectivePositionInMarketResponse
     }
 
     fn_query! {
@@ -127,7 +223,15 @@ where
     }
 
     fn_query! {
+        pub query_exchange_module_state_v2 ["/injective.exchange.v2.Query/ModuleStateRequest"]: v2::QueryModuleStateRequest => v2::QueryModuleStateResponse
+    }
+
+    fn_query! {
         pub query_is_opted_out_of_rewards ["/injective.exchange.v1beta1.Query/IsOptedOutOfRewards"]: v1beta1::QueryIsOptedOutOfRewardsRequest => v1beta1::QueryIsOptedOutOfRewardsResponse
+    }
+
+    fn_query! {
+        pub query_is_opted_out_of_rewards_v2 ["/injective.exchange.v2.Query/IsOptedOutOfRewards"]: v2::QueryIsOptedOutOfRewardsRequest => v2::QueryIsOptedOutOfRewardsResponse
     }
 }
 
