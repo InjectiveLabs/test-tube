@@ -72,7 +72,7 @@ where
     }
 
     fn_execute! {
-        pub instant_perpetual_market_launch: v2::MsgInstantPerpetualMarketLaunch => v2::MsgInstantPerpetualMarketLaunchResponse
+        pub instant_perpetual_market_launch_v2: v2::MsgInstantPerpetualMarketLaunch => v2::MsgInstantPerpetualMarketLaunchResponse
     }
 
     fn_execute! {
@@ -250,6 +250,7 @@ mod tests {
         checked_address_to_subaccount_id, get_default_subaccount_id_for_checked_address,
     };
     use injective_std::shim::Any;
+    use injective_std::types::injective::oracle::v1beta1::OracleType;
     use injective_std::types::{
         cosmos::{
             authz::v1beta1::{GenericAuthorization, Grant, MsgExec, MsgGrant},
@@ -264,6 +265,9 @@ mod tests {
     use prost::Message;
     use std::str::FromStr;
 
+    use crate::module::helpers::{
+        add_exchange_admin, launch_insurance_fund, launch_price_feed_oracle,
+    };
     use crate::{Account, Authz, Bank, Exchange, Gov, InjectiveTestApp, Runner};
     use test_tube_inj::Module;
 
@@ -760,16 +764,7 @@ mod tests {
             ])
             .unwrap();
 
-        let res: v1beta1::QueryExchangeParamsResponse = app
-            .query(
-                "/injective.exchange.v1beta1.Query/QueryExchangeParams",
-                &v1beta1::QueryExchangeParamsRequest {},
-            )
-            .unwrap();
-
-        let mut exchange_params = res.params.unwrap();
-        exchange_params.exchange_admins.push(admin.address());
-        exchange_params.max_derivative_order_side_count = 300u32;
+        add_exchange_admin(&app, &validator, admin.address());
 
         // NOTE: this could change in the future
         let _governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
@@ -883,6 +878,48 @@ mod tests {
                     min_notional: "1000000".to_owned(),
                     base_decimals: 10,
                     quote_decimals: 6,
+                },
+                &admin,
+            )
+            .unwrap();
+
+        launch_insurance_fund(
+            &app,
+            &admin,
+            "INJ/USDT",
+            "usdt",
+            "inj",
+            "usdt",
+            OracleType::PriceFeed,
+        );
+
+        launch_price_feed_oracle(
+            &app,
+            &signer,
+            &validator,
+            "inj",
+            "usdt",
+            "100000000000000000".to_owned(),
+        );
+
+        exchange
+            .instant_perpetual_market_launch_v2(
+                v2::MsgInstantPerpetualMarketLaunch {
+                    sender: admin.address(),
+                    ticker: "INJ/USDT".to_owned(),
+                    quote_denom: "usdt".to_owned(),
+                    min_price_tick_size: "10000".to_owned(),
+                    min_quantity_tick_size: "100000".to_owned(),
+                    min_notional: "1000000".to_owned(),
+                    oracle_base: "inj".to_owned(),
+                    oracle_quote: "usdt".to_owned(),
+                    oracle_scale_factor: 6,
+                    oracle_type: OracleType::PriceFeed as i32,
+                    maker_fee_rate: "-100000000000000".to_string(),
+                    taker_fee_rate: "1000000000000000".to_string(),
+                    initial_margin_ratio: "100000000000000000".to_string(),
+                    maintenance_margin_ratio: "10000000000000000".to_string(),
+                    reduce_margin_ratio: "150000000000000000".to_string(),
                 },
                 &admin,
             )
