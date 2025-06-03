@@ -1,21 +1,28 @@
-use injective_std::shim::Any;
-use injective_std::types::cosmos::gov::v1::MsgSubmitProposal;
-use injective_std::types::injective::insurance::v1beta1::MsgCreateInsuranceFund;
-use injective_std::types::injective::oracle::v1beta1::OracleType;
-use injective_std::types::{
-    cosmos::{
-        base::v1beta1::Coin as BaseCoin,
-        gov::{v1::MsgVote, v1beta1::MsgSubmitProposal as MsgSubmitProposalV1Beta1},
+use crate::{Account, Gov, InjectiveTestApp, Insurance, Oracle, Runner, SigningAccount};
+
+use injective_std::{
+    shim::Any,
+    types::{
+        cosmos::{
+            base::v1beta1::Coin as BaseCoin,
+            gov::{
+                v1::{MsgSubmitProposal, MsgVote},
+                v1beta1::MsgSubmitProposal as MsgSubmitProposalV1Beta1,
+            },
+        },
+        injective::{
+            exchange::v1beta1,
+            insurance::v1beta1::MsgCreateInsuranceFund,
+            oracle::v1beta1::{
+                GrantPriceFeederPrivilegeProposal, MsgRelayPriceFeedPrice, OracleType,
+            },
+        },
     },
-    injective::exchange::v1beta1,
-    injective::oracle::v1beta1::{GrantPriceFeederPrivilegeProposal, MsgRelayPriceFeedPrice},
 };
 
 use prost::Message;
 use std::str::FromStr;
 use test_tube_inj::Module;
-
-use crate::{Account, Gov, InjectiveTestApp, Insurance, Oracle, Runner, SigningAccount};
 
 pub fn add_exchange_admin(
     app: &InjectiveTestApp,
