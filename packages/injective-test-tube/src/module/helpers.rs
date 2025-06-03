@@ -168,26 +168,6 @@ pub fn launch_price_feed_oracle(
         .unwrap();
 }
 
-pub fn relay_price_feed_price(
-    oracle: &Oracle<InjectiveTestApp>,
-    relayer: &SigningAccount,
-    base_denom: &str,
-    quote_denom: &str,
-    price: &str,
-) {
-    oracle
-        .relay_price_feed(
-            MsgRelayPriceFeedPrice {
-                sender: relayer.address(),
-                base: vec![base_denom.to_string()],
-                quote: vec![quote_denom.to_string()],
-                price: vec![price.to_string()],
-            },
-            relayer,
-        )
-        .unwrap();
-}
-
 pub fn launch_insurance_fund(
     app: &InjectiveTestApp,
     signer: &SigningAccount,
