@@ -4,7 +4,7 @@ edition     = "2021"
 license     = "MIT OR Apache-2.0"
 name        = "injective-test-tube"
 repository  = "https://github.com/InjectiveLabs/test-tube"
-version     = "1.16.0-beta.2"
+version     = "1.16.0-beta.2.1"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 exclude = [ "injective-core", "test_artifacts" ]
@@ -12,7 +12,7 @@ exclude = [ "injective-core", "test_artifacts" ]
 [dependencies]
 cosmrs             = { version = "0.20.0", features = [ "cosmwasm", "rpc" ] }
 cosmwasm-std       = { version = "2.1.0", features = [ "abort", "cosmwasm_1_2", "cosmwasm_1_3", "cosmwasm_1_4", "cosmwasm_2_0", "iterator", "stargate" ] }
-injective-cosmwasm = { version = "0.3.0" }
+injective-cosmwasm = { version = "0.3.3" }
 injective-std      = { version = "=1.16.0-beta.2" }
 prost              = { version = "0.13.4", features = [ "prost-derive" ] }
 serde              = "1.0.144"
