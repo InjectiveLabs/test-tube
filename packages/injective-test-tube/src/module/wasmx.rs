@@ -1,8 +1,6 @@
 use injective_std::types::injective::wasmx::v1;
 
-use test_tube_inj::fn_query;
-
-use test_tube_inj::runner::Runner;
+use test_tube_inj::{fn_query, runner::Runner};
 
 pub struct Wasmx<'a, R: Runner<'a>> {
     runner: &'a R,

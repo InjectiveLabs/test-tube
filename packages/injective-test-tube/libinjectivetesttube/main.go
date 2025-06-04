@@ -66,7 +66,7 @@ func InitTestEnv() uint64 {
 	newCtx := env.Ctx.WithBlockTime(newBlockTime).WithBlockHeight(env.Ctx.BlockHeight() + 1)
 	env.Ctx = newCtx
 
-	reqFinalizeBlock := abci.RequestFinalizeBlock{Height: env.Ctx.BlockHeight(), Txs: [][]byte{}, Time: newBlockTime}
+	reqFinalizeBlock := abci.FinalizeBlockRequest{Height: env.Ctx.BlockHeight(), Txs: [][]byte{}, Time: newBlockTime}
 
 	env.App.FinalizeBlock(&reqFinalizeBlock)
 	env.App.Commit()
@@ -203,7 +203,7 @@ func internalFinalizeBlock(envId uint64, base64ReqDeliverTx string, seconds uint
 	newCtx := env.Ctx.WithBlockTime(newBlockTime).WithBlockHeight(env.Ctx.BlockHeight() + 1)
 	env.Ctx = newCtx
 
-	reqFinalizeBlock := &abci.RequestFinalizeBlock{Height: env.Ctx.BlockHeight(), Txs: [][]byte{reqDeliverTxBytes}, Time: newBlockTime}
+	reqFinalizeBlock := &abci.FinalizeBlockRequest{Height: env.Ctx.BlockHeight(), Txs: [][]byte{reqDeliverTxBytes}, Time: newBlockTime}
 
 	res, err := env.App.FinalizeBlock(reqFinalizeBlock)
 	if err != nil {
@@ -233,7 +233,7 @@ func Query(envId uint64, path, base64QueryMsgBytes string) *C.char {
 		panic(err)
 	}
 
-	req := abci.RequestQuery{}
+	req := abci.QueryRequest{}
 	req.Data = queryMsgBytes
 
 	route := env.App.GRPCQueryRouter().Route(path)

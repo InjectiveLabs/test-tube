@@ -1,10 +1,7 @@
 use injective_std::types::cosmos::staking::v1beta1::{
     MsgDelegate, MsgDelegateResponse, MsgUndelegate, MsgUndelegateResponse,
 };
-use test_tube_inj::fn_execute;
-
-use test_tube_inj::module::Module;
-use test_tube_inj::runner::Runner;
+use test_tube_inj::{fn_execute, module::Module, runner::Runner};
 
 pub struct Staking<'a, R: Runner<'a>> {
     runner: &'a R,

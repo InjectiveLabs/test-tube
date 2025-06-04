@@ -3,6 +3,7 @@ mod authz;
 mod bank;
 mod exchange;
 mod gov;
+mod helpers;
 mod insurance;
 mod oracle;
 mod staking;

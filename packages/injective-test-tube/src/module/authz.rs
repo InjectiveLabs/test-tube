@@ -3,10 +3,7 @@ use injective_std::types::cosmos::authz::v1beta1::{
     QueryGranteeGrantsResponse, QueryGranterGrantsRequest, QueryGranterGrantsResponse,
     QueryGrantsRequest, QueryGrantsResponse,
 };
-use test_tube_inj::{fn_execute, fn_query};
-
-use test_tube_inj::module::Module;
-use test_tube_inj::runner::Runner;
+use test_tube_inj::{fn_execute, fn_query, module::Module, runner::Runner};
 
 pub struct Authz<'a, R: Runner<'a>> {
     runner: &'a R,

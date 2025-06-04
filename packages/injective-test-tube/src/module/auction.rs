@@ -3,10 +3,7 @@ use injective_std::types::injective::auction::v1beta1::{
     QueryCurrentAuctionBasketResponse, QueryLastAuctionResultRequest,
     QueryLastAuctionResultResponse, QueryModuleStateRequest, QueryModuleStateResponse,
 };
-use test_tube_inj::fn_query;
-
-use test_tube_inj::module::Module;
-use test_tube_inj::runner::Runner;
+use test_tube_inj::{fn_query, module::Module, runner::Runner};
 
 pub struct Auction<'a, R: Runner<'a>> {
     runner: &'a R,

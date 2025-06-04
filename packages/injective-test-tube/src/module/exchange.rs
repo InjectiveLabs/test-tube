@@ -1,7 +1,5 @@
-use injective_std::types::injective::exchange::v1beta1;
-use test_tube_inj::module::Module;
-use test_tube_inj::runner::Runner;
-use test_tube_inj::{fn_execute, fn_query};
+use injective_std::types::injective::exchange::{v1beta1, v2};
+use test_tube_inj::{fn_execute, fn_query, module::Module, runner::Runner};
 
 pub struct Exchange<'a, R: Runner<'a>> {
     runner: &'a R,
@@ -22,7 +20,15 @@ where
     }
 
     fn_execute! {
+        pub instant_spot_market_launch_v2: v2::MsgInstantSpotMarketLaunch => v2::MsgInstantSpotMarketLaunchResponse
+    }
+
+    fn_execute! {
         pub batch_exchange_modification: v1beta1::MsgBatchExchangeModification => v1beta1::MsgBatchExchangeModificationResponse
+    }
+
+    fn_execute! {
+        pub batch_exchange_modification_v2: v2::MsgBatchExchangeModification => v2::MsgBatchExchangeModificationResponse
     }
 
     fn_execute! {
@@ -30,7 +36,15 @@ where
     }
 
     fn_execute! {
+        pub create_spot_limit_order_v2: v2::MsgCreateSpotLimitOrder => v2::MsgCreateSpotLimitOrderResponse
+    }
+
+    fn_execute! {
         pub create_derivative_limit_order: v1beta1::MsgCreateDerivativeLimitOrder => v1beta1::MsgCreateDerivativeLimitOrderResponse
+    }
+
+    fn_execute! {
+        pub create_derivative_limit_order_v2: v2::MsgCreateDerivativeLimitOrder => v2::MsgCreateDerivativeLimitOrderResponse
     }
 
     fn_execute! {
@@ -38,7 +52,15 @@ where
     }
 
     fn_execute! {
+        pub cancel_spot_order_v2: v2::MsgCancelSpotOrder => v2::MsgCancelSpotOrderResponse
+    }
+
+    fn_execute! {
         pub cancel_derivative_order: v1beta1::MsgCancelDerivativeOrder => v1beta1::MsgCancelDerivativeOrderResponse
+    }
+
+    fn_execute! {
+        pub cancel_derivative_order_v2: v2::MsgCancelDerivativeOrder => v2::MsgCancelDerivativeOrderResponse
     }
 
     fn_execute! {
@@ -46,7 +68,11 @@ where
     }
 
     fn_execute! {
-        pub instant_perpetual_market_launch: v1beta1::MsgInstantPerpetualMarketLaunch => v1beta1::MsgInstantPerpetualMarketLaunchResponse
+        pub batch_update_orders_v2: v2::MsgBatchUpdateOrders => v2::MsgBatchUpdateOrdersResponse
+    }
+
+    fn_execute! {
+        pub instant_perpetual_market_launch_v2: v2::MsgInstantPerpetualMarketLaunch => v2::MsgInstantPerpetualMarketLaunchResponse
     }
 
     fn_execute! {
@@ -54,11 +80,23 @@ where
     }
 
     fn_execute! {
+        pub privileged_execute_contract_v2: v2::MsgPrivilegedExecuteContract => v2::MsgPrivilegedExecuteContractResponse
+    }
+
+    fn_execute! {
         pub deposit: v1beta1::MsgDeposit => v1beta1::MsgDepositResponse
     }
 
     fn_execute! {
+        pub deposit_v2: v2::MsgDeposit => v2::MsgDepositResponse
+    }
+
+    fn_execute! {
         pub withdraw: v1beta1::MsgWithdraw => v1beta1::MsgWithdrawResponse
+    }
+
+    fn_execute! {
+        pub withdraw_v2: v2::MsgWithdraw => v2::MsgWithdrawResponse
     }
 
     fn_query! {
@@ -66,11 +104,22 @@ where
     }
 
     fn_query! {
+        pub query_spot_markets_v2 ["/injective.exchange.v2.Query/SpotMarkets"]: v2::QuerySpotMarketsRequest => v2::QuerySpotMarketsResponse
+    }
+
+    fn_query! {
         pub query_spot_market ["/injective.exchange.v1beta1.Query/SpotMarket"]: v1beta1::QuerySpotMarketRequest => v1beta1::QuerySpotMarketResponse
     }
 
     fn_query! {
+        pub query_spot_market_v2 ["/injective.exchange.v2.Query/SpotMarket"]: v2::QuerySpotMarketRequest => v2::QuerySpotMarketResponse
+    }
+
+    fn_query! {
         pub query_spot_mid_price_and_tob ["/injective.exchange.v1beta1.Query/SpotMidPriceAndTOB"]: v1beta1::QuerySpotMidPriceAndTobRequest => v1beta1::QuerySpotMidPriceAndTobResponse
+    }
+    fn_query! {
+        pub query_spot_mid_price_and_tob_v2 ["/injective.exchange.v2.Query/SpotMidPriceAndTOB"]: v2::QuerySpotMidPriceAndTobRequest => v2::QuerySpotMidPriceAndTobResponse
     }
 
     fn_query! {
@@ -78,7 +127,15 @@ where
     }
 
     fn_query! {
+        pub query_derivative_markets_v2 ["/injective.exchange.v2.Query/DerivativeMarkets"]: v2::QueryDerivativeMarketsRequest => v2::QueryDerivativeMarketsResponse
+    }
+
+    fn_query! {
         pub query_derivative_market ["/injective.exchange.v1beta1.Query/DerivativeMarket"]: v1beta1::QueryDerivativeMarketRequest => v1beta1::QueryDerivativeMarketResponse
+    }
+
+    fn_query! {
+        pub query_derivative_market_v2 ["/injective.exchange.v2.Query/DerivativeMarket"]: v2::QueryDerivativeMarketRequest => v2::QueryDerivativeMarketResponse
     }
 
     fn_query! {
@@ -86,7 +143,15 @@ where
     }
 
     fn_query! {
+        pub query_derivative_mid_price_and_tob_v2 ["/injective.exchange.v2.Query/DerivativeMidPriceAndTOB"]: v2::QueryDerivativeMidPriceAndTobRequest => v2::QueryDerivativeMidPriceAndTobResponse
+    }
+
+    fn_query! {
         pub query_subaccount_deposits ["/injective.exchange.v1beta1.Query/SubaccountDeposits"]: v1beta1::QuerySubaccountDepositsRequest => v1beta1::QuerySubaccountDepositsResponse
+    }
+
+    fn_query! {
+        pub query_subaccount_deposits_v2 ["/injective.exchange.v2.Query/SubaccountDeposits"]: v2::QuerySubaccountDepositsRequest => v2::QuerySubaccountDepositsResponse
     }
 
     fn_query! {
@@ -94,7 +159,15 @@ where
     }
 
     fn_query! {
+        pub query_spot_market_orderbook_v2 ["/injective.exchange.v2.Query/SpotOrderbook"]: v2::QuerySpotOrderbookRequest => v2::QuerySpotOrderbookResponse
+    }
+
+    fn_query! {
         pub query_derivative_market_orderbook ["/injective.exchange.v1beta1.Query/DerivativeOrderbook"]: v1beta1::QueryDerivativeOrderbookRequest => v1beta1::QueryDerivativeOrderbookResponse
+    }
+
+    fn_query! {
+        pub query_derivative_market_orderbook_v2 ["/injective.exchange.v2.Query/DerivativeOrderbook"]: v2::QueryDerivativeOrderbookRequest => v2::QueryDerivativeOrderbookResponse
     }
 
     fn_query! {
@@ -102,7 +175,15 @@ where
     }
 
     fn_query! {
+        pub query_trader_spot_orders_v2 ["/injective.exchange.v2.Query/TraderSpotOrders"]: v2::QueryTraderSpotOrdersRequest => v2::QueryTraderSpotOrdersResponse
+    }
+
+    fn_query! {
         pub query_trader_derivative_orders ["/injective.exchange.v1beta1.Query/TraderDerivativeOrders"]: v1beta1::QueryTraderDerivativeOrdersRequest => v1beta1::QueryTraderDerivativeOrdersResponse
+    }
+
+    fn_query! {
+        pub query_trader_derivative_orders_v2 ["/injective.exchange.v2.Query/TraderDerivativeOrders"]: v2::QueryTraderDerivativeOrdersRequest => v2::QueryTraderDerivativeOrdersResponse
     }
 
     fn_query! {
@@ -110,7 +191,15 @@ where
     }
 
     fn_query! {
+        pub query_positions_v2 ["/injective.exchange.v2.Query/Positions"]: v2::QueryPositionsRequest => v2::QueryPositionsResponse
+    }
+
+    fn_query! {
         pub query_subaccount_positions ["/injective.exchange.v1beta1.Query/SubaccountPositions"]: v1beta1::QuerySubaccountPositionsRequest => v1beta1::QuerySubaccountPositionsResponse
+    }
+
+    fn_query! {
+        pub query_subaccount_positions_v2 ["/injective.exchange.v2.Query/SubaccountPositions"]: v2::QuerySubaccountPositionsRequest => v2::QuerySubaccountPositionsResponse
     }
 
     fn_query! {
@@ -118,7 +207,15 @@ where
     }
 
     fn_query! {
+        pub query_subaccount_position_in_market_v2 ["/injective.exchange.v2.Query/SubaccountPositionInMarket"]: v2::QuerySubaccountPositionInMarketRequest => v2::QuerySubaccountPositionInMarketResponse
+    }
+
+    fn_query! {
         pub query_subaccount_effective_position_in_market ["/injective.exchange.v1beta1.Query/SubaccountEffectivePositionInMarket"]: v1beta1::QuerySubaccountEffectivePositionInMarketRequest => v1beta1::QuerySubaccountEffectivePositionInMarketResponse
+    }
+
+    fn_query! {
+        pub query_subaccount_effective_position_in_market_v2 ["/injective.exchange.v2.Query/SubaccountEffectivePositionInMarket"]: v2::QuerySubaccountEffectivePositionInMarketRequest => v2::QuerySubaccountEffectivePositionInMarketResponse
     }
 
     fn_query! {
@@ -126,7 +223,23 @@ where
     }
 
     fn_query! {
+        pub query_exchange_module_state_v2 ["/injective.exchange.v2.Query/ModuleStateRequest"]: v2::QueryModuleStateRequest => v2::QueryModuleStateResponse
+    }
+
+    fn_query! {
         pub query_is_opted_out_of_rewards ["/injective.exchange.v1beta1.Query/IsOptedOutOfRewards"]: v1beta1::QueryIsOptedOutOfRewardsRequest => v1beta1::QueryIsOptedOutOfRewardsResponse
+    }
+
+    fn_query! {
+        pub query_is_opted_out_of_rewards_v2 ["/injective.exchange.v2.Query/IsOptedOutOfRewards"]: v2::QueryIsOptedOutOfRewardsRequest => v2::QueryIsOptedOutOfRewardsResponse
+    }
+
+    fn_query! {
+        pub query_denom_min_notionals ["/injective.exchange.v1beta1.Query/DenomMinNotionals"]: v1beta1::QueryDenomMinNotionalsRequest => v1beta1::QueryDenomMinNotionalsResponse
+    }
+
+    fn_query! {
+        pub query_denom_min_notionals_v2 ["/injective.exchange.v2.Query/DenomMinNotionals"]: v2::QueryDenomMinNotionalsRequest => v2::QueryDenomMinNotionalsResponse
     }
 }
 
@@ -137,18 +250,24 @@ mod tests {
         checked_address_to_subaccount_id, get_default_subaccount_id_for_checked_address,
     };
     use injective_std::shim::Any;
+    use injective_std::types::injective::oracle::v1beta1::OracleType;
     use injective_std::types::{
         cosmos::{
             authz::v1beta1::{GenericAuthorization, Grant, MsgExec, MsgGrant},
             bank::v1beta1::MsgSend,
             base::v1beta1::Coin as SDKCoin,
-            gov::v1::{MsgSubmitProposal, MsgVote},
+            gov::v1::MsgVote,
+            gov::v1beta1 as gov_v1beta1,
         },
         injective::exchange::v1beta1,
+        injective::exchange::v2,
     };
     use prost::Message;
     use std::str::FromStr;
 
+    use crate::module::helpers::{
+        add_exchange_admin, launch_insurance_fund, launch_price_feed_oracle,
+    };
     use crate::{Account, Authz, Bank, Exchange, Gov, InjectiveTestApp, Runner};
     use test_tube_inj::Module;
 
@@ -214,14 +333,14 @@ mod tests {
             )
             .unwrap();
 
-        let mut exchange_params = res.params.unwrap();
+        let mut exchange_params = res.params.clone().unwrap();
         exchange_params.exchange_admins.push(admin.address());
         exchange_params.max_derivative_order_side_count = 300u32;
 
-        // NOTE: this could change int he future
-        let governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
+        // NOTE: this could change in the future
+        let _governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
 
-        let proposal = v1beta1::BatchExchangeModificationProposal {
+        let proposal = v2::BatchExchangeModificationProposal {
             title: "Update params".to_string(),
             description: "Basically updating the params".to_string(),
             spot_market_param_update_proposals: vec![],
@@ -235,45 +354,41 @@ mod tests {
             denom_decimals_update_proposal: None,
             fee_discount_proposal: None,
             market_forced_settlement_proposals: vec![],
-            denom_min_notional_proposal: Some(v1beta1::DenomMinNotionalProposal {
+            denom_min_notional_proposal: Some(v2::DenomMinNotionalProposal {
                 title: "Update min notional".to_string(),
                 description: "Love it!".to_string(),
-                denom_min_notionals: vec![v1beta1::DenomMinNotional {
-                    denom: "usdt".to_string(),
-                    min_notional: "1".to_string(),
-                }],
+                denom_min_notionals: vec![
+                    v2::DenomMinNotional {
+                        denom: "inj".to_string(),
+                        min_notional: "1".to_string(),
+                    },
+                    v2::DenomMinNotional {
+                        denom: "usdt".to_string(),
+                        min_notional: "1".to_string(),
+                    },
+                ],
             }),
         };
 
         let mut buf = vec![];
-        v1beta1::MsgBatchExchangeModification::encode(
-            &v1beta1::MsgBatchExchangeModification {
-                sender: governance_module_address.to_string(),
-                proposal: Some(proposal),
-            },
-            &mut buf,
-        )
-        .unwrap();
+        proposal.encode(&mut buf).unwrap();
+
+        let content_any = Any {
+            type_url: "/injective.exchange.v2.BatchExchangeModificationProposal".to_string(),
+            value: buf,
+        };
+
+        let msg_submit_proposal = gov_v1beta1::MsgSubmitProposal {
+            content: Some(content_any),
+            initial_deposit: vec![SDKCoin {
+                amount: "100000000000000000000".to_string(),
+                denom: "inj".to_string(),
+            }],
+            proposer: validator.address(),
+        };
 
         let res = gov
-            .submit_proposal(
-                MsgSubmitProposal {
-                    messages: vec![Any {
-                        type_url: v1beta1::MsgBatchExchangeModification::TYPE_URL.to_string(),
-                        value: buf,
-                    }],
-                    initial_deposit: vec![SDKCoin {
-                        amount: "100000000000000000000".to_string(),
-                        denom: "inj".to_string(),
-                    }],
-                    proposer: validator.address(),
-                    metadata: "".to_string(),
-                    title: "Update params".to_string(),
-                    summary: "Basically updating the params".to_string(),
-                    expedited: false,
-                },
-                &validator,
-            )
+            .submit_proposal_v1beta1(msg_submit_proposal, &validator)
             .unwrap();
 
         let proposal_id = res
@@ -297,17 +412,27 @@ mod tests {
         .unwrap();
 
         // Increase time to pass the proposal
-        app.increase_time(100u64);
+        app.increase_time(20u64);
+
+        let prop_response = gov
+            .query_proposal_v1beta1(&gov_v1beta1::QueryProposalRequest {
+                proposal_id: u64::from_str(&proposal_id).unwrap(),
+            })
+            .unwrap();
+        assert_eq!(prop_response.clone().proposal.unwrap().status, 3i32); // 3 is the status for Passed
+
+        // Increase time to pass the proposal
+        app.increase_time(200u64);
 
         exchange
-            .instant_spot_market_launch(
-                v1beta1::MsgInstantSpotMarketLaunch {
+            .instant_spot_market_launch_v2(
+                v2::MsgInstantSpotMarketLaunch {
                     sender: admin.address(),
                     ticker: "INJ/USDT".to_owned(),
                     base_denom: "inj".to_owned(),
                     quote_denom: "usdt".to_owned(),
-                    min_price_tick_size: "10000".to_owned(),
-                    min_quantity_tick_size: "100000".to_owned(),
+                    min_price_tick_size: "1".to_owned(),
+                    min_quantity_tick_size: "1".to_owned(),
                     min_notional: "1".to_owned(),
                     base_decimals: 18,
                     quote_decimals: 6,
@@ -317,15 +442,15 @@ mod tests {
             .unwrap();
 
         exchange
-            .instant_spot_market_launch(
-                v1beta1::MsgInstantSpotMarketLaunch {
+            .instant_spot_market_launch_v2(
+                v2::MsgInstantSpotMarketLaunch {
                     sender: signer.address(),
                     ticker: "INJ/USDT".to_owned(),
                     base_denom: "inj".to_owned(),
                     quote_denom: "usdt".to_owned(),
-                    min_price_tick_size: "10000".to_owned(),
-                    min_quantity_tick_size: "100000".to_owned(),
-                    min_notional: "100000".to_owned(),
+                    min_price_tick_size: "10".to_owned(),
+                    min_quantity_tick_size: "1".to_owned(),
+                    min_notional: "1".to_owned(),
                     base_decimals: 18,
                     quote_decimals: 6,
                 },
@@ -334,14 +459,14 @@ mod tests {
             .unwrap_err();
 
         let spot_markets = exchange
-            .query_spot_markets(&v1beta1::QuerySpotMarketsRequest {
+            .query_spot_markets_v2(&v2::QuerySpotMarketsRequest {
                 status: "Active".to_owned(),
                 market_ids: vec![],
             })
             .unwrap();
 
-        let expected_response = v1beta1::QuerySpotMarketsResponse {
-            markets: vec![v1beta1::SpotMarket {
+        let expected_response = v2::QuerySpotMarketsResponse {
+            markets: vec![v2::SpotMarket {
                 ticker: "INJ/USDT".to_string(),
                 base_denom: "inj".to_string(),
                 quote_denom: "usdt".to_string(),
@@ -351,8 +476,8 @@ mod tests {
                 market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
                     .to_string(),
                 status: v1beta1::MarketStatus::Active.into(),
-                min_price_tick_size: "10000".to_string(),
-                min_quantity_tick_size: "100000".to_string(),
+                min_price_tick_size: "1".to_string(),
+                min_quantity_tick_size: "1".to_string(),
                 min_notional: "1".to_string(),
                 admin: "".to_string(),
                 admin_permissions: 0u32,
@@ -639,21 +764,12 @@ mod tests {
             ])
             .unwrap();
 
-        let res: v1beta1::QueryExchangeParamsResponse = app
-            .query(
-                "/injective.exchange.v1beta1.Query/QueryExchangeParams",
-                &v1beta1::QueryExchangeParamsRequest {},
-            )
-            .unwrap();
+        add_exchange_admin(&app, &validator, admin.address());
 
-        let mut exchange_params = res.params.unwrap();
-        exchange_params.exchange_admins.push(admin.address());
-        exchange_params.max_derivative_order_side_count = 300u32;
+        // NOTE: this could change in the future
+        let _governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
 
-        // NOTE: this could change int he future
-        let governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
-
-        let proposal = v1beta1::BatchExchangeModificationProposal {
+        let proposal = v2::BatchExchangeModificationProposal {
             title: "Update params".to_string(),
             description: "Basically updating the params".to_string(),
             spot_market_param_update_proposals: vec![],
@@ -667,45 +783,41 @@ mod tests {
             denom_decimals_update_proposal: None,
             fee_discount_proposal: None,
             market_forced_settlement_proposals: vec![],
-            denom_min_notional_proposal: Some(v1beta1::DenomMinNotionalProposal {
+            denom_min_notional_proposal: Some(v2::DenomMinNotionalProposal {
                 title: "Update min notional".to_string(),
                 description: "Love it!".to_string(),
-                denom_min_notionals: vec![v1beta1::DenomMinNotional {
-                    denom: "usdt".to_string(),
-                    min_notional: "1".to_string(),
-                }],
+                denom_min_notionals: vec![
+                    v2::DenomMinNotional {
+                        denom: "inj".to_string(),
+                        min_notional: "1".to_string(),
+                    },
+                    v2::DenomMinNotional {
+                        denom: "usdt".to_string(),
+                        min_notional: "1".to_string(),
+                    },
+                ],
             }),
         };
 
         let mut buf = vec![];
-        v1beta1::MsgBatchExchangeModification::encode(
-            &v1beta1::MsgBatchExchangeModification {
-                sender: governance_module_address.to_string(),
-                proposal: Some(proposal),
-            },
-            &mut buf,
-        )
-        .unwrap();
+        proposal.encode(&mut buf).unwrap();
+
+        let content_any = Any {
+            type_url: "/injective.exchange.v2.BatchExchangeModificationProposal".to_string(),
+            value: buf,
+        };
+
+        let msg_submit_proposal = gov_v1beta1::MsgSubmitProposal {
+            content: Some(content_any),
+            initial_deposit: vec![SDKCoin {
+                amount: "100000000000000000000".to_string(),
+                denom: "inj".to_string(),
+            }],
+            proposer: validator.address(),
+        };
 
         let res = gov
-            .submit_proposal(
-                MsgSubmitProposal {
-                    messages: vec![Any {
-                        type_url: v1beta1::MsgBatchExchangeModification::TYPE_URL.to_string(),
-                        value: buf,
-                    }],
-                    initial_deposit: vec![SDKCoin {
-                        amount: "100000000000000000000".to_string(),
-                        denom: "inj".to_string(),
-                    }],
-                    proposer: validator.address(),
-                    metadata: "".to_string(),
-                    title: "Update params".to_string(),
-                    summary: "Basically updating the params".to_string(),
-                    expedited: false,
-                },
-                &validator,
-            )
+            .submit_proposal_v1beta1(msg_submit_proposal, &validator)
             .unwrap();
 
         let proposal_id = res
@@ -729,20 +841,85 @@ mod tests {
         .unwrap();
 
         // Increase time to pass the proposal
-        app.increase_time(100u64);
+        app.increase_time(20u64);
+
+        let prop_response = gov
+            .query_proposal_v1beta1(&gov_v1beta1::QueryProposalRequest {
+                proposal_id: u64::from_str(&proposal_id).unwrap(),
+            })
+            .unwrap();
+        assert_eq!(prop_response.clone().proposal.unwrap().status, 3i32); // 3 is the status for Passed
+
+        // Increase time to pass the proposal
+        app.increase_time(200u64);
+
+        bank.send(
+            MsgSend {
+                from_address: signer.address(),
+                to_address: validator.address(),
+                amount: vec![SDKCoin {
+                    amount: "1000000000000000000000".to_string(),
+                    denom: "inj".to_string(),
+                }],
+            },
+            &signer,
+        )
+        .unwrap();
 
         exchange
-            .instant_spot_market_launch(
-                v1beta1::MsgInstantSpotMarketLaunch {
+            .instant_spot_market_launch_v2(
+                v2::MsgInstantSpotMarketLaunch {
                     sender: admin.address(),
                     ticker: "INJ/USDT".to_owned(),
                     base_denom: "inj".to_owned(),
                     quote_denom: "usdt".to_owned(),
                     min_price_tick_size: "10000".to_owned(),
                     min_quantity_tick_size: "100000".to_owned(),
-                    min_notional: "1".to_owned(),
+                    min_notional: "1000000".to_owned(),
                     base_decimals: 10,
                     quote_decimals: 6,
+                },
+                &admin,
+            )
+            .unwrap();
+
+        launch_insurance_fund(
+            &app,
+            &admin,
+            "INJ/USDT",
+            "usdt",
+            "inj",
+            "usdt",
+            OracleType::PriceFeed,
+        );
+
+        launch_price_feed_oracle(
+            &app,
+            &signer,
+            &validator,
+            "inj",
+            "usdt",
+            "100000000000000000".to_owned(),
+        );
+
+        exchange
+            .instant_perpetual_market_launch_v2(
+                v2::MsgInstantPerpetualMarketLaunch {
+                    sender: admin.address(),
+                    ticker: "INJ/USDT".to_owned(),
+                    quote_denom: "usdt".to_owned(),
+                    min_price_tick_size: "10000".to_owned(),
+                    min_quantity_tick_size: "100000".to_owned(),
+                    min_notional: "1000000".to_owned(),
+                    oracle_base: "inj".to_owned(),
+                    oracle_quote: "usdt".to_owned(),
+                    oracle_scale_factor: 6,
+                    oracle_type: OracleType::PriceFeed as i32,
+                    maker_fee_rate: "-100000000000000".to_string(),
+                    taker_fee_rate: "1000000000000000".to_string(),
+                    initial_margin_ratio: "100000000000000000".to_string(),
+                    maintenance_margin_ratio: "10000000000000000".to_string(),
+                    reduce_margin_ratio: "150000000000000000".to_string(),
                 },
                 &admin,
             )

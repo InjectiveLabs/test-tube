@@ -4,9 +4,7 @@ use injective_std::types::injective::oracle::v1beta1::{
     QueryModuleStateRequest, QueryModuleStateResponse, QueryOraclePriceRequest,
     QueryOraclePriceResponse, QueryPythPriceRequest, QueryPythPriceResponse,
 };
-use test_tube_inj::module::Module;
-use test_tube_inj::runner::Runner;
-use test_tube_inj::{fn_execute, fn_query};
+use test_tube_inj::{fn_execute, fn_query, module::Module, runner::Runner};
 
 pub struct Oracle<'a, R: Runner<'a>> {
     runner: &'a R,
