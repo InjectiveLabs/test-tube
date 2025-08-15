@@ -103,7 +103,7 @@ mod tests {
 
         assert!(closing_time > 0, "closing_time should be positive");
         assert!(
-            closing_time > block_time_sec as u64,
+            closing_time > block_time_sec,
             "closing_time ({}) should be bigger than block_time_sec ({})",
             closing_time,
             block_time_sec
