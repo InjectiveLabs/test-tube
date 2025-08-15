@@ -1736,7 +1736,7 @@ dependencies = [
 
 [[package]]
 name = "injective-test-tube"
-version = "1.16.0-beta.3"
+version = "1.16.3"
 dependencies = [
  "bindgen",
  "cosmrs",
@@ -3054,7 +3054,7 @@ dependencies = [
 
 [[package]]
 name = "test-tube-inj"
-version = "2.0.7"
+version = "2.0.8"
 dependencies = [
  "base64 0.21.7",
  "cosmrs",
