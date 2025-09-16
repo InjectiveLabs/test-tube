@@ -38,14 +38,14 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::{Auction, InjectiveTestApp};
     use injective_std::types::{
         cosmos::base::v1beta1::Coin as BaseCoin,
         injective::auction::v1beta1::{
-            LastAuctionResult, Params, QueryAuctionParamsRequest, QueryLastAuctionResultRequest,
+            LastAuctionResult, Params, QueryAuctionParamsRequest, QueryCurrentAuctionBasketRequest,
+            QueryLastAuctionResultRequest,
         },
     };
-
-    use crate::{Auction, InjectiveTestApp};
     use test_tube_inj::Module;
 
     #[test]
@@ -82,6 +82,63 @@ mod tests {
                 winner: "".to_string(),
                 round: 0u64,
             }
+        );
+
+        let block_time_sec = app.get_block_time_seconds() as u64;
+
+        let basket_res = auction
+            .query_current_auction_basket(&QueryCurrentAuctionBasketRequest {})
+            .expect("query_current_auction_basket should succeed");
+
+        let closing_time = basket_res.auction_closing_time;
+        let round = basket_res.auction_round;
+        let highest_bid = basket_res.highest_bid_amount.clone();
+        let highest_bidder = basket_res.highest_bidder.clone();
+
+        assert_eq!(round, 0, "Round should be 0");
+        println!(
+            "[check] round={}, closing_time={}, highest_bidder={}, highest_bid_amount={}",
+            round, closing_time, highest_bidder, highest_bid
+        );
+
+        assert!(closing_time > 0, "closing_time should be positive");
+        assert!(
+            closing_time > block_time_sec,
+            "closing_time ({}) should be bigger than block_time_sec ({})",
+            closing_time,
+            block_time_sec
+        );
+
+        app.increase_time(1);
+
+        let basket_response_after_increase = auction
+            .query_current_auction_basket(&QueryCurrentAuctionBasketRequest {})
+            .expect("query_current_auction_basket should succeed (after)");
+
+        assert_eq!(
+            basket_response_after_increase.auction_round, round,
+            "Round should not change"
+        );
+
+        assert_eq!(
+            basket_response_after_increase.auction_closing_time,
+            closing_time,
+        );
+
+        app.increase_time(closing_time - block_time_sec + 1);
+
+        let basket_response_after_increase = auction
+            .query_current_auction_basket(&QueryCurrentAuctionBasketRequest {})
+            .expect("query_current_auction_basket should succeed (after)");
+
+        assert!(
+            basket_response_after_increase.auction_round > round,
+            "Round should increase"
+        );
+
+        assert!(
+            basket_response_after_increase.auction_closing_time > closing_time,
+            "Closing time should increase"
         );
     }
 }

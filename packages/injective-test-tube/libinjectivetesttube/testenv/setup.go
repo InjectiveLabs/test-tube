@@ -153,17 +153,20 @@ func InitChain(appInstance *app.InjectiveApp) (sdk.Context, secp256k1.PrivKey) {
 	// replace sdk.DefaultDenom with "inj", a bit of a hack, needs improvement
 	stateBytes = []byte(strings.Replace(string(stateBytes), "\"stake\"", "\"inj\"", -1))
 
+    now := time.Now().UTC()
+
 	_, err = appInstance.InitChain(
 		&abci.InitChainRequest{
 			ChainId:         "injective-777",
 			Validators:      []abci.ValidatorUpdate{},
 			ConsensusParams: DefaultConsensusParams,
 			AppStateBytes:   stateBytes,
+			Time:            now,
 		},
 	)
 	requireNoErr(err)
 
-	ctx := appInstance.NewUncachedContext(false, cmtproto.Header{Height: 0, ChainID: "injective-777", Time: time.Now().UTC()})
+	ctx := appInstance.NewUncachedContext(false, cmtproto.Header{Height: 0, ChainID: "injective-777", Time:now})
 
 	return ctx, valPriv
 }

@@ -1,9 +1,9 @@
+name: Unit tests + lints
+
 on:
   push:
   pull_request:
     types: [opened]
-
-name: Unit tests + lints
 
 jobs:
   test:
@@ -26,6 +26,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+
 
   lints:
     name: Lints

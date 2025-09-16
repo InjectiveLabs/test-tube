@@ -252,8 +252,8 @@ github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/cloudmock v0
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/cloudmock v0.48.1/go.mod h1:0wEl7vrAD8mehJyohS9HZy+WyEOaQO2mJx86Cvh93kM=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.48.1 h1:8nn+rsCvTq9axyEh382S0PFLBeaFwNsT43IrPWzctRU=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.48.1/go.mod h1:viRWSEhtMZqz1rhwmOVKkWl6SwmVowfL9O2YR5gI2PE=
-github.com/InjectiveFoundation/injective-core v1.16.0-beta.3 h1:qbtKCAOxROoxMz6+GL6oXDM+nxMedzagqzZ3ZaY9m8w=
-github.com/InjectiveFoundation/injective-core v1.16.0-beta.3/go.mod h1:crcXyBcea0FNONjKgoB8uOn/380GSgIG8AuaqpHAnn8=
+github.com/InjectiveFoundation/injective-core v1.16.3 h1:2wPgixa9v+0083fgKzj0a6AUFuGDef9NjVWlf71ohew=
+github.com/InjectiveFoundation/injective-core v1.16.3/go.mod h1:efxLTquSZZOUyTY2uBBALp4v/IPMMDshE1n5NWxeKAU=
 github.com/InjectiveLabs/bandchain-packet v0.0.4-inj-1 h1:ZnvCV/lzjWmBwuGbkAz+okucfJEyEzkU9GYK3tKU9cU=
 github.com/InjectiveLabs/bandchain-packet v0.0.4-inj-1/go.mod h1:QELTDYiwnbAqIgTF9zeKr+hVlK6eVyt6Nxmh6/1mmzQ=
 github.com/InjectiveLabs/block-sdk/v2 v2.5.1-evm-comet1-inj h1:Xuj3uLi8bwghHC7ydo8BhZBf6wZcM/rt569xIRXGod4=
