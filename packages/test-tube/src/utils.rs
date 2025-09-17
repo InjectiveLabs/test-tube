@@ -17,7 +17,7 @@ pub fn coins_to_proto(coins: &[Coin]) -> Vec<cosmrs::proto::cosmos::base::v1beta
         .iter()
         .map(|c| cosmrs::proto::cosmos::base::v1beta1::Coin {
             denom: c.denom.parse().unwrap(),
-            amount: format!("{}", c.amount.u128()),
+            amount: c.amount.to_string(),
         })
         .collect()
 }

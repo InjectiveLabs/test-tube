@@ -4,16 +4,17 @@ edition     = "2021"
 license     = "MIT OR Apache-2.0"
 name        = "test-tube-inj"
 repository  = "https://github.com/InjectiveLabs/test-tube"
-version     = "2.0.8-1"
+version     = "2.0.9-1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ed25519-zebra = { version = "4.1.0", features = ["alloc"] }
 base64          =  { version = "0.21.7" }
 cosmrs          = { version = "0.22.0", features = ["cosmwasm", "rpc"] }
-cosmwasm-std    = { version = "2.2.2", features = ["abort", "cosmwasm_1_2", "cosmwasm_1_3", "cosmwasm_1_4", "cosmwasm_2_0", "iterator", "stargate"] }
+cosmwasm-std    = { version = "3.0.2", features = ["cosmwasm_1_2", "cosmwasm_1_3", "cosmwasm_1_4", "cosmwasm_2_0", "iterator", "stargate"] }
 prost           = { version = "0.13.5", features = ["derive"] }
 serde_json      = { version = "1.0.140" }
 thiserror       = { version = "1.0.69" }
+
+
 

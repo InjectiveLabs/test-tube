@@ -271,6 +271,7 @@ mod tests {
     use crate::{Account, Authz, Bank, Exchange, Gov, InjectiveTestApp, Runner};
     use test_tube_inj::Module;
 
+
     #[test]
     fn exchange_integration() {
         let app = InjectiveTestApp::new();
@@ -926,3 +927,5 @@ mod tests {
             .unwrap();
     }
 }
+
+

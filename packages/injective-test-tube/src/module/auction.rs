@@ -63,6 +63,7 @@ mod tests {
                 auction_period: 604800,
                 min_next_bid_increment_rate: 2_500_000_000_000_000u128.to_string(),
                 inj_basket_max_cap: "10000000000000000000000".to_string(),
+                bidders_whitelist: vec![],
             })
         );
 

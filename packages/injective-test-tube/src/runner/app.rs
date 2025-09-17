@@ -152,7 +152,7 @@ impl<'a> Runner<'a> for InjectiveTestApp {
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coins, Coin};
+    use cosmwasm_std::{coins, Coin, Uint256};
     use injective_std::types::{
         cosmos::bank::v1beta1::QueryAllBalancesRequest,
         injective::tokenfactory::v1beta1::{
@@ -491,6 +491,8 @@ mod tests {
             .unwrap();
 
         assert_eq!(res.gas_info.gas_wanted, gas_limit);
-        assert_eq!(bob_balance, initial_balance - amount.amount.u128());
+        assert_eq!(Uint256::new(bob_balance), Uint256::new(initial_balance) - amount.amount);
     }
 }
+
+
