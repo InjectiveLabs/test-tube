@@ -271,7 +271,6 @@ mod tests {
     use crate::{Account, Authz, Bank, Exchange, Gov, InjectiveTestApp, Runner};
     use test_tube_inj::Module;
 
-
     #[test]
     fn exchange_integration() {
         let app = InjectiveTestApp::new();
@@ -326,17 +325,6 @@ mod tests {
                 Coin::new(100_000_000_000_000_000_000u128, "usdt"),
             ])
             .unwrap();
-
-        let res: v1beta1::QueryExchangeParamsResponse = app
-            .query(
-                "/injective.exchange.v1beta1.Query/QueryExchangeParams",
-                &v1beta1::QueryExchangeParamsRequest {},
-            )
-            .unwrap();
-
-        let mut exchange_params = res.params.clone().unwrap();
-        exchange_params.exchange_admins.push(admin.address());
-        exchange_params.max_derivative_order_side_count = 300u32;
 
         // NOTE: this could change in the future
         let _governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
@@ -927,5 +915,3 @@ mod tests {
             .unwrap();
     }
 }
-
-

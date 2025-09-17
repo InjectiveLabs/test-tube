@@ -11,13 +11,13 @@ exclude = [ "injective-core", "test_artifacts" ]
 
 [dependencies]
 cosmrs             = { version = "0.22.0", features = [ "cosmwasm", "rpc" ] }
-cosmwasm-std       = { version = "3.0.2", features = ["cosmwasm_1_2", "cosmwasm_1_3", "cosmwasm_1_4", "cosmwasm_2_0", "iterator", "stargate" ] }
+cosmwasm-std       = { version = "3.0.2", features = [ "cosmwasm_1_2", "cosmwasm_1_3", "cosmwasm_1_4", "cosmwasm_2_0", "iterator", "stargate" ] }
 injective-cosmwasm = { version = "0.3.5-1" }
 injective-std      = { version = "=1.16.4-1" }
 prost              = { version = "0.13.5", features = [ "derive" ] }
 serde              = "1.0.144"
 serde_json         = "1.0.85"
-test-tube-inj = { version = "2.0.9-1", path = "../test-tube" }
+test-tube-inj      = { version = "2.0.9-1", path = "../test-tube" }
 
 [build-dependencies]
 bindgen = "0.60.1"
@@ -26,5 +26,5 @@ bindgen = "0.60.1"
 cw1-whitelist = "1.1.2"
 
 [patch.crates-io]
-tendermint-proto = { version = "0.40.4" }
 cosmos-sdk-proto = { version = "0.27.0" }
+tendermint-proto = { version = "0.40.4" }
