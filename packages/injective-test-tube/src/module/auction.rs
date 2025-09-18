@@ -47,7 +47,7 @@ mod tests {
             LastAuctionResult, Params, QueryAuctionParamsRequest, QueryCurrentAuctionBasketRequest,
             QueryLastAuctionResultRequest,
         },
-        injective::exchange::v2::QueryDenomDecimalsRequest,
+        injective::exchange::v1beta1::QueryDenomDecimalsRequest,
     };
     use test_tube_inj::{Account, Module};
 

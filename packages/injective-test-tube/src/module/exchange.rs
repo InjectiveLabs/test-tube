@@ -243,7 +243,7 @@ where
     }
 
     fn_query! {
-        pub query_denom_decimals ["/injective.exchange.v1beta1.Query/DenomDecimals"]: v2::QueryDenomDecimalsRequest => v2::QueryDenomDecimalsResponse
+        pub query_denom_decimals ["/injective.exchange.v1beta1.Query/DenomDecimals"]: v1beta1::QueryDenomDecimalsRequest => v1beta1::QueryDenomDecimalsResponse
     }
 }
 
