@@ -159,11 +159,12 @@ func InitChain(appInstance *app.InjectiveApp) (sdk.Context, secp256k1.PrivKey) {
 			ConsensusParams: DefaultConsensusParams,
 			AppStateBytes:   stateBytes,
 			Time:            now,
+			InitialHeight:   500,
 		},
 	)
 	requireNoErr(err)
 
-	ctx := appInstance.NewUncachedContext(false, cmtproto.Header{Height: 0, ChainID: "injective-777", Time: now})
+	ctx := appInstance.NewUncachedContext(false, cmtproto.Header{Height: 499, ChainID: "injective-777", Time: now})
 
 	return ctx, valPriv
 }
