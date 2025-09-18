@@ -130,6 +130,8 @@ func InitChain(appInstance *app.InjectiveApp) (sdk.Context, secp256k1.PrivKey) {
 	exchangeGen := exchangetypesv2.GenesisState{
 		Params: exchangeParams,
 	}
+
+	exchangeGen.DenomDecimals = []exchangetypesv2.DenomDecimals{{Denom: "inj", Decimals: 18}, {"usdt", 6}}
 	genesisState[exchangetypes.ModuleName] = encCfg.Codec.MustMarshalJSON(&exchangeGen)
 
 	// Set up wasmx genesis state

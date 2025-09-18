@@ -241,6 +241,10 @@ where
     fn_query! {
         pub query_denom_min_notionals_v2 ["/injective.exchange.v2.Query/DenomMinNotionals"]: v2::QueryDenomMinNotionalsRequest => v2::QueryDenomMinNotionalsResponse
     }
+
+    fn_query! {
+        pub query_denom_decimals ["/injective.exchange.v1beta1.Query/DenomDecimals"]: v2::QueryDenomDecimalsRequest => v2::QueryDenomDecimalsResponse
+    }
 }
 
 #[cfg(test)]
@@ -268,7 +272,7 @@ mod tests {
     use crate::module::helpers::{
         add_exchange_admin, launch_insurance_fund, launch_price_feed_oracle,
     };
-    use crate::{Account, Authz, Bank, Exchange, Gov, InjectiveTestApp, Runner};
+    use crate::{Account, Authz, Bank, Exchange, Gov, InjectiveTestApp};
     use test_tube_inj::Module;
 
     #[test]
