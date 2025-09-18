@@ -69,7 +69,7 @@ where
                     .iter()
                     .map(|c| injective_std::types::cosmos::base::v1beta1::Coin {
                         denom: c.denom.parse().unwrap(),
-                        amount: format!("{}", c.amount.to_string()),
+                        amount: format!("{}", c.amount),
                     })
                     .collect(),
             },
@@ -96,7 +96,7 @@ where
                     .iter()
                     .map(|c| injective_std::types::cosmos::base::v1beta1::Coin {
                         denom: c.denom.parse().unwrap(),
-                        amount: format!("{}", c.amount.to_string()),
+                        amount: format!("{}", c.amount),
                     })
                     .collect(),
                 contract: contract.to_owned(),
