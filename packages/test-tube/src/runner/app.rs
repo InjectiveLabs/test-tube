@@ -338,7 +338,9 @@ impl BaseApp {
 
                 let amount = cosmrs::Coin {
                     denom: self.fee_denom.parse().unwrap(),
-                    amount: (((gas_limit as f64) * (gas_price.amount.u128() as f64)).ceil() as u64)
+                    amount: (((gas_limit as f64)
+                        * (gas_price.amount.to_string().parse::<u128>().unwrap() as f64))
+                        .ceil() as u64)
                         .into(),
                 };
                 Ok(Fee::from_amount_and_gas(amount, gas_limit))

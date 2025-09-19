@@ -3,5 +3,3 @@
 members  = [ "packages/*" ]
 resolver = "2"
 
-[workspace.dependencies]
-ed25519-zebra = { version = "4.1.0", features = ["alloc"] }

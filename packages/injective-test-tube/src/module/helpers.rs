@@ -2,21 +2,15 @@ use crate::{Account, Gov, InjectiveTestApp, Insurance, Oracle, Runner, SigningAc
 
 use injective_std::{
     shim::Any,
-    types::{
-        cosmos::{
-            base::v1beta1::Coin as BaseCoin,
-            gov::{
-                v1::{MsgSubmitProposal, MsgVote},
-                v1beta1::MsgSubmitProposal as MsgSubmitProposalV1Beta1,
-            },
-        },
-        injective::{
-            exchange::v1beta1,
-            insurance::v1beta1::MsgCreateInsuranceFund,
-            oracle::v1beta1::{
-                GrantPriceFeederPrivilegeProposal, MsgRelayPriceFeedPrice, OracleType,
-            },
-        },
+    types::cosmos::{
+        base::v1beta1::Coin as BaseCoin,
+        gov::v1::{MsgSubmitProposal, MsgVote},
+        gov::v1beta1::MsgSubmitProposal as MsgSubmitProposalV1Beta1,
+    },
+    types::injective::{
+        exchange::v2,
+        insurance::v1beta1::MsgCreateInsuranceFund,
+        oracle::v1beta1::{GrantPriceFeederPrivilegeProposal, MsgRelayPriceFeedPrice, OracleType},
     },
 };
 
@@ -24,17 +18,17 @@ use prost::Message;
 use std::str::FromStr;
 use test_tube_inj::Module;
 
+#[allow(dead_code)]
 pub fn add_exchange_admin(
     app: &InjectiveTestApp,
     validator: &SigningAccount,
     admin_address: String,
 ) {
     let gov = Gov::new(app);
-
-    let res: v1beta1::QueryExchangeParamsResponse = app
+    let res: v2::QueryExchangeParamsResponse = app
         .query(
-            "/injective.exchange.v1beta1.Query/QueryExchangeParams",
-            &v1beta1::QueryExchangeParamsRequest {},
+            "/injective.exchange.v2.Query/QueryExchangeParams",
+            &v2::QueryExchangeParamsRequest {},
         )
         .unwrap();
 
@@ -46,8 +40,8 @@ pub fn add_exchange_admin(
     let governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
 
     let mut buf = vec![];
-    v1beta1::MsgUpdateParams::encode(
-        &v1beta1::MsgUpdateParams {
+    v2::MsgUpdateParams::encode(
+        &v2::MsgUpdateParams {
             authority: governance_module_address.to_string(),
             params: Some(exchange_params),
         },
@@ -59,7 +53,7 @@ pub fn add_exchange_admin(
         .submit_proposal(
             MsgSubmitProposal {
                 messages: vec![Any {
-                    type_url: v1beta1::MsgUpdateParams::TYPE_URL.to_string(),
+                    type_url: v2::MsgUpdateParams::TYPE_URL.to_string(),
                     value: buf,
                 }],
                 initial_deposit: vec![BaseCoin {
@@ -97,6 +91,7 @@ pub fn add_exchange_admin(
     .unwrap();
 }
 
+#[allow(dead_code)]
 pub fn launch_price_feed_oracle(
     app: &InjectiveTestApp,
     signer: &SigningAccount,
@@ -175,6 +170,7 @@ pub fn launch_price_feed_oracle(
         .unwrap();
 }
 
+#[allow(dead_code)]
 pub fn launch_insurance_fund(
     app: &InjectiveTestApp,
     signer: &SigningAccount,

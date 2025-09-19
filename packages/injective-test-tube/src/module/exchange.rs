@@ -241,6 +241,10 @@ where
     fn_query! {
         pub query_denom_min_notionals_v2 ["/injective.exchange.v2.Query/DenomMinNotionals"]: v2::QueryDenomMinNotionalsRequest => v2::QueryDenomMinNotionalsResponse
     }
+
+    fn_query! {
+        pub query_denom_decimals ["/injective.exchange.v1beta1.Query/DenomDecimals"]: v1beta1::QueryDenomDecimalsRequest => v1beta1::QueryDenomDecimalsResponse
+    }
 }
 
 #[cfg(test)]
@@ -268,7 +272,7 @@ mod tests {
     use crate::module::helpers::{
         add_exchange_admin, launch_insurance_fund, launch_price_feed_oracle,
     };
-    use crate::{Account, Authz, Bank, Exchange, Gov, InjectiveTestApp, Runner};
+    use crate::{Account, Authz, Bank, Exchange, Gov, InjectiveTestApp};
     use test_tube_inj::Module;
 
     #[test]
@@ -325,17 +329,6 @@ mod tests {
                 Coin::new(100_000_000_000_000_000_000u128, "usdt"),
             ])
             .unwrap();
-
-        let res: v1beta1::QueryExchangeParamsResponse = app
-            .query(
-                "/injective.exchange.v1beta1.Query/QueryExchangeParams",
-                &v1beta1::QueryExchangeParamsRequest {},
-            )
-            .unwrap();
-
-        let mut exchange_params = res.params.clone().unwrap();
-        exchange_params.exchange_admins.push(admin.address());
-        exchange_params.max_derivative_order_side_count = 300u32;
 
         // NOTE: this could change in the future
         let _governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";
