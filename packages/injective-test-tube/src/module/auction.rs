@@ -96,15 +96,8 @@ mod tests {
 
         let closing_time = basket_res.auction_closing_time;
         let round = basket_res.auction_round;
-        let highest_bid = basket_res.highest_bid_amount.clone();
-        let highest_bidder = basket_res.highest_bidder.clone();
 
         assert_eq!(round, 0, "Round should be 0");
-        println!(
-            "[check] round={}, closing_time={}, highest_bidder={}, highest_bid_amount={}",
-            round, closing_time, highest_bidder, highest_bid
-        );
-
         assert!(closing_time > 0, "closing_time should be positive");
         assert!(
             closing_time > block_time_sec,
@@ -134,7 +127,6 @@ mod tests {
         let basket_response_after_increase = auction
             .query_current_auction_basket(&QueryCurrentAuctionBasketRequest {})
             .expect("query_current_auction_basket should succeed (after)");
-        println!("{:?}", basket_response_after_increase);
         assert!(
             basket_response_after_increase.auction_round > round,
             "Round should increase"
