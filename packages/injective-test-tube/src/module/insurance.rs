@@ -79,7 +79,7 @@ mod tests {
 
         let res = insurance
             .query_insurance_fund(&QueryInsuranceFundRequest {
-                market_id: "0xc04ba8ebc86a97c57e4385ad264183a156c3afaffc0e4c398cc77120e2b3bab9"
+                market_id: "0x08faf5464420af457e12d01ff01faf2c50c0862ccaad29fbcc826516432f4267"
                     .to_string(),
             })
             .unwrap()
@@ -96,7 +96,7 @@ mod tests {
                 oracle_quote: "usdt".to_string(),
                 oracle_type: 2i32,
                 expiry: -1i64,
-                market_id: "0xc04ba8ebc86a97c57e4385ad264183a156c3afaffc0e4c398cc77120e2b3bab9"
+                market_id: "0x08faf5464420af457e12d01ff01faf2c50c0862ccaad29fbcc826516432f4267"
                     .to_string(),
                 total_share: "1000000000000000000".to_string(),
                 market_ticker: "INJ/USDT".to_string(),

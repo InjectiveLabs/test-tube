@@ -1,8 +1,8 @@
 use injective_std::types::injective::oracle::v1beta1::{
-    MsgRelayBandRates, MsgRelayBandRatesResponse, MsgRelayPriceFeedPrice,
-    MsgRelayPriceFeedPriceResponse, MsgRelayPythPrices, MsgRelayPythPricesResponse,
-    QueryModuleStateRequest, QueryModuleStateResponse, QueryOraclePriceRequest,
-    QueryOraclePriceResponse, QueryPythPriceRequest, QueryPythPriceResponse,
+    MsgRelayPriceFeedPrice, MsgRelayPriceFeedPriceResponse, MsgRelayPythPrices,
+    MsgRelayPythPricesResponse, QueryModuleStateRequest, QueryModuleStateResponse,
+    QueryOraclePriceRequest, QueryOraclePriceResponse, QueryPythPriceRequest,
+    QueryPythPriceResponse,
 };
 use test_tube_inj::{fn_execute, fn_query, module::Module, runner::Runner};
 
@@ -20,10 +20,6 @@ impl<'a, R> Oracle<'a, R>
 where
     R: Runner<'a>,
 {
-    fn_execute! {
-        pub relay_band_rates: MsgRelayBandRates => MsgRelayBandRatesResponse
-    }
-
     fn_execute! {
         pub relay_price_feed: MsgRelayPriceFeedPrice => MsgRelayPriceFeedPriceResponse
     }
@@ -232,6 +228,9 @@ mod tests {
                 authority: governance_module_address.to_string(),
                 params: Some(Params {
                     pyth_contract: pyth_contract.address(),
+                    chainlink_verifier_proxy_contract: "".to_string(),
+                    accept_unverified_chainlink_data_streams_reports: true,
+                    chainlink_data_streams_verification_gas_limit: 1000000,
                 }),
             },
             &mut buf,

@@ -201,11 +201,11 @@ mod tests {
     fn test_get_block_height() {
         let app = InjectiveTestApp::default();
 
-        assert_eq!(app.get_block_height(), 1i64);
+        assert_eq!(app.get_block_height(), 500i64);
 
         app.increase_time(10u64);
 
-        assert_eq!(app.get_block_height(), 2i64);
+        assert_eq!(app.get_block_height(), 501i64);
     }
 
     #[test]
@@ -275,7 +275,7 @@ mod tests {
             allow_admin_burn: true,
         };
 
-        assert_eq!(app.get_block_height(), 4i64);
+        assert_eq!(app.get_block_height(), 503i64);
 
         let _res: ExecuteResponse<MsgCreateDenomResponse> = app
             .execute_multiple(
@@ -287,11 +287,11 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(app.get_block_height(), 5i64);
+        assert_eq!(app.get_block_height(), 504i64);
 
         app.init_account(&coins(100_000_000_000_000_000_000u128, "inj")) // 100 inj
             .unwrap();
-        assert_eq!(app.get_block_height(), 6i64);
+        assert_eq!(app.get_block_height(), 505i64);
     }
 
     #[test]
@@ -491,8 +491,9 @@ mod tests {
             .unwrap();
 
         assert_eq!(res.gas_info.gas_wanted, gas_limit);
-        assert_eq!(Uint256::new(bob_balance), Uint256::new(initial_balance) - amount.amount);
+        assert_eq!(
+            Uint256::new(bob_balance),
+            Uint256::new(initial_balance) - amount.amount
+        );
     }
 }
-
-

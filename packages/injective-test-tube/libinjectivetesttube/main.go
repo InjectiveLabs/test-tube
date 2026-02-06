@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/InjectiveLabs/test-tube/injective-test-tube/result"
-	"github.com/InjectiveLabs/test-tube/injective-test-tube/testenv"
+	"github.com/InjectiveLabs/test-tube/libinjectivetesttube/result"
+	"github.com/InjectiveLabs/test-tube/libinjectivetesttube/testenv"
 	abci "github.com/cometbft/cometbft/abci/types"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
