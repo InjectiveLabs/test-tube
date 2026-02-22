@@ -126,8 +126,8 @@ func InitChain(appInstance *app.InjectiveApp) (sdk.Context, secp256k1.PrivKey) {
 
 	exchangeParams := exchangetypesv2.DefaultParams()
 	exchangeParams.IsInstantDerivativeMarketLaunchEnabled = true
-	exchangeParams.PostOnlyModeBlocksAmount = 0
-	exchangeParams.PostOnlyModeBlocksAmountAfterDowntime = 0
+	exchangeParams.PostOnlyModeBlocksAmount = 1
+	exchangeParams.PostOnlyModeBlocksAmountAfterDowntime = 1
 	exchangeParams.PostOnlyModeHeightThreshold = 0
 
 	exchangeGen := exchangetypesv2.GenesisState{

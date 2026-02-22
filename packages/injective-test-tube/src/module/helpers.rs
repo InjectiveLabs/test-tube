@@ -34,6 +34,8 @@ pub fn add_exchange_admin(
     let mut exchange_params = res.params.unwrap();
     exchange_params.exchange_admins.push(admin_address);
     exchange_params.max_derivative_order_side_count = 300u32;
+    exchange_params.post_only_mode_blocks_amount = 1u64;
+    exchange_params.post_only_mode_blocks_amount_after_downtime = 1u64;
 
     // NOTE: this could change int the future
     let governance_module_address = "inj10d07y265gmmuvt4z0w9aw880jnsr700jstypyt";

@@ -1,4 +1,4 @@
-module github.com/InjectiveLabs/test-tube/libinjectivetesttube
+module github.com/InjectiveLabs/test-tube/injective-test-tube
 
 go 1.23.9
 
@@ -6,7 +6,7 @@ require (
 	cosmossdk.io/log v1.4.1
 	cosmossdk.io/math v1.4.0
 	github.com/CosmWasm/wasmd v0.53.2
-	github.com/InjectiveLabs/injective-core v1.18.0-beta.2
+	github.com/InjectiveLabs/injective-core v0.0.0-00010101000000-000000000000
 	github.com/cometbft/cometbft v1.0.1
 	github.com/cometbft/cometbft/api v1.0.0
 	github.com/cosmos/cosmos-db v1.1.1
@@ -28,7 +28,6 @@ require (
 	cosmossdk.io/x/upgrade v0.1.4 // indirect
 	github.com/CosmWasm/wasmvm/v2 v2.1.5 // indirect
 	github.com/InjectiveLabs/metrics v0.0.10 // indirect
-	github.com/allegro/bigcache v1.2.1 // indirect
 	github.com/bcp-innovations/hyperlane-cosmos v1.0.1 // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect
 	github.com/cosmos/go-bip39 v1.0.0 // indirect
@@ -152,6 +151,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
+	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
 	github.com/gofrs/flock v0.12.1 // indirect
 	github.com/gogo/googleapis v1.4.1 // indirect
@@ -296,6 +296,7 @@ replace (
 	cosmossdk.io/x/upgrade => github.com/InjectiveLabs/cosmos-sdk/x/upgrade v0.50.14-inj.4
 
 	github.com/CosmWasm/wasmd => github.com/InjectiveLabs/wasmd v0.53.3-inj.2
+	github.com/InjectiveLabs/injective-core => github.com/InjectiveFoundation/injective-core v1.18.0
 	github.com/bandprotocol/bandchain-packet => github.com/InjectiveLabs/bandchain-packet v0.0.4-inj-1
 	github.com/bcp-innovations/hyperlane-cosmos => github.com/InjectiveLabs/hyperlane-cosmos v1.0.1-inj
 	github.com/coder/websocket => github.com/InjectiveLabs/websocket v1.8.13
