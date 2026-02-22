@@ -275,7 +275,8 @@ mod tests {
             allow_admin_burn: true,
         };
 
-        assert_eq!(app.get_block_height(), 503i64);
+        let mut current_block_height = 503i64;
+        assert_eq!(app.get_block_height(), current_block_height);
 
         let _res: ExecuteResponse<MsgCreateDenomResponse> = app
             .execute_multiple(
@@ -286,12 +287,13 @@ mod tests {
                 &acc,
             )
             .unwrap();
-
-        assert_eq!(app.get_block_height(), 504i64);
+        current_block_height += 1;
+        assert_eq!(app.get_block_height(), current_block_height);
 
         app.init_account(&coins(100_000_000_000_000_000_000u128, "inj")) // 100 inj
             .unwrap();
-        assert_eq!(app.get_block_height(), 505i64);
+        current_block_height += 1;
+        assert_eq!(app.get_block_height(), current_block_height);
     }
 
     #[test]

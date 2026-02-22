@@ -18,6 +18,7 @@ use prost::Message;
 use std::str::FromStr;
 use test_tube_inj::Module;
 
+#[allow(dead_code)]
 pub fn add_exchange_admin(
     app: &InjectiveTestApp,
     validator: &SigningAccount,
@@ -92,6 +93,7 @@ pub fn add_exchange_admin(
     .unwrap();
 }
 
+#[allow(dead_code)]
 pub fn launch_price_feed_oracle(
     app: &InjectiveTestApp,
     signer: &SigningAccount,
@@ -170,6 +172,7 @@ pub fn launch_price_feed_oracle(
         .unwrap();
 }
 
+#[allow(dead_code)]
 pub fn launch_insurance_fund(
     app: &InjectiveTestApp,
     signer: &SigningAccount,
