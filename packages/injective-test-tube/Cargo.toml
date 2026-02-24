@@ -4,7 +4,7 @@ edition     = "2021"
 license     = "MIT OR Apache-2.0"
 name        = "injective-test-tube"
 repository  = "https://github.com/InjectiveLabs/test-tube"
-version     = "1.16.4-1"
+version     = "1.18.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 exclude = [ "injective-core", "test_artifacts" ]
@@ -13,14 +13,18 @@ exclude = [ "injective-core", "test_artifacts" ]
 cosmrs             = { version = "0.22.0", features = [ "cosmwasm", "rpc" ] }
 cosmwasm-std       = { version = "3.0.2", features = [ "cosmwasm_1_2", "cosmwasm_1_3", "cosmwasm_1_4", "cosmwasm_2_0", "iterator", "stargate" ] }
 injective-cosmwasm = { version = "0.3.5-1" }
-injective-std      = { version = "=1.16.4-1" }
+injective-std      = { version = "=1.18.0" }
 prost              = { version = "0.13.5", features = [ "derive" ] }
 serde              = "1.0.144"
 serde_json         = "1.0.85"
-test-tube-inj      = { version = "2.0.9-1"}
+test-tube-inj      = { version = "2.0.9-1", path = "../test-tube" }
 
 [build-dependencies]
 bindgen = "0.60.1"
 
 [dev-dependencies]
 cw1-whitelist = "1.1.2"
+
+[patch.crates-io]
+cosmos-sdk-proto = { version = "0.27.0" }
+tendermint-proto = { version = "0.40.4" }

@@ -254,6 +254,8 @@ mod tests {
         checked_address_to_subaccount_id, get_default_subaccount_id_for_checked_address,
     };
     use injective_std::shim::Any;
+    use injective_std::types::injective::exchange::v2::open_notional_cap::Cap;
+    use injective_std::types::injective::exchange::v2::{OpenNotionalCap, OpenNotionalCapUncapped};
     use injective_std::types::injective::oracle::v1beta1::OracleType;
     use injective_std::types::{
         cosmos::{
@@ -344,7 +346,7 @@ mod tests {
             trading_reward_campaign_update_proposal: None,
             binary_options_market_launch_proposals: vec![],
             binary_options_param_update_proposals: vec![],
-            denom_decimals_update_proposal: None,
+            auction_exchange_transfer_denom_decimals_update_proposal: None,
             fee_discount_proposal: None,
             market_forced_settlement_proposals: vec![],
             denom_min_notional_proposal: Some(v2::DenomMinNotionalProposal {
@@ -424,9 +426,9 @@ mod tests {
                     ticker: "INJ/USDT".to_owned(),
                     base_denom: "inj".to_owned(),
                     quote_denom: "usdt".to_owned(),
-                    min_price_tick_size: "1".to_owned(),
-                    min_quantity_tick_size: "1".to_owned(),
-                    min_notional: "1".to_owned(),
+                    min_price_tick_size: "1000000".to_owned(),
+                    min_quantity_tick_size: "1000000".to_owned(),
+                    min_notional: "1000000".to_owned(),
                     base_decimals: 18,
                     quote_decimals: 6,
                 },
@@ -466,23 +468,24 @@ mod tests {
                 maker_fee_rate: "-100000000000000".to_string(),
                 taker_fee_rate: "1000000000000000".to_string(),
                 relayer_fee_share_rate: "400000000000000000".to_string(),
-                market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
+                market_id: "0x096d3197b4db6da1328ec870b9fcc1d7ebe6ddeff2048efeee2f3d3d1854ecb4"
                     .to_string(),
                 status: v1beta1::MarketStatus::Active.into(),
-                min_price_tick_size: "1".to_string(),
-                min_quantity_tick_size: "1".to_string(),
-                min_notional: "1".to_string(),
+                min_price_tick_size: "1000000".to_string(),
+                min_quantity_tick_size: "1000000".to_string(),
+                min_notional: "1000000".to_string(),
                 admin: "".to_string(),
                 admin_permissions: 0u32,
                 base_decimals: 18,
                 quote_decimals: 6,
+                has_disabled_minimal_protocol_fee: false,
             }],
         };
         assert_eq!(spot_markets, expected_response);
 
         let spot_mid_price_and_tob = exchange
             .query_spot_mid_price_and_tob(&v1beta1::QuerySpotMidPriceAndTobRequest {
-                market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
+                market_id: "0x096d3197b4db6da1328ec870b9fcc1d7ebe6ddeff2048efeee2f3d3d1854ecb4"
                     .to_string(),
             })
             .unwrap();
@@ -500,7 +503,7 @@ mod tests {
                     sender: signer.address(),
                     order: Some(v1beta1::SpotOrder {
                         market_id:
-                            "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
+                            "0x096d3197b4db6da1328ec870b9fcc1d7ebe6ddeff2048efeee2f3d3d1854ecb4"
                                 .to_string(),
                         order_info: Some(v1beta1::OrderInfo {
                             subaccount_id: get_default_subaccount_id_for_checked_address(
@@ -510,7 +513,7 @@ mod tests {
                             .to_string(),
                             fee_recipient: signer.address(),
                             price: "1000000000000000000".to_string(),
-                            quantity: "10000000000000000000".to_string(),
+                            quantity: "1000000000000000000000000".to_string(),
                             cid: "".to_string(),
                         }),
                         order_type: 1i32,
@@ -527,7 +530,7 @@ mod tests {
                     sender: trader.address(),
                     order: Some(v1beta1::SpotOrder {
                         market_id:
-                            "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
+                            "0x096d3197b4db6da1328ec870b9fcc1d7ebe6ddeff2048efeee2f3d3d1854ecb4"
                                 .to_string(),
                         order_info: Some(v1beta1::OrderInfo {
                             subaccount_id: get_default_subaccount_id_for_checked_address(
@@ -537,7 +540,7 @@ mod tests {
                             .to_string(),
                             fee_recipient: trader.address(),
                             price: "2000000000000000000".to_string(),
-                            quantity: "10000000000000000000".to_string(),
+                            quantity: "1000000000000000000000000".to_string(),
                             cid: "".to_string(),
                         }),
                         order_type: 2i32,
@@ -550,7 +553,7 @@ mod tests {
 
         let spot_mid_price_and_tob = exchange
             .query_spot_mid_price_and_tob(&v1beta1::QuerySpotMidPriceAndTobRequest {
-                market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
+                market_id: "0x096d3197b4db6da1328ec870b9fcc1d7ebe6ddeff2048efeee2f3d3d1854ecb4"
                     .to_string(),
             })
             .unwrap();
@@ -572,7 +575,7 @@ mod tests {
         // create spot limit order using grant
         let orders_before = exchange
             .query_trader_spot_orders(&v1beta1::QueryTraderSpotOrdersRequest {
-                market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
+                market_id: "0x096d3197b4db6da1328ec870b9fcc1d7ebe6ddeff2048efeee2f3d3d1854ecb4"
                     .to_string(),
                 subaccount_id: get_default_subaccount_id_for_checked_address(&Addr::unchecked(
                     trader.address(),
@@ -612,7 +615,7 @@ mod tests {
             &v1beta1::MsgCreateSpotLimitOrder {
                 sender: trader.address(),
                 order: Some(v1beta1::SpotOrder {
-                    market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
+                    market_id: "0x096d3197b4db6da1328ec870b9fcc1d7ebe6ddeff2048efeee2f3d3d1854ecb4"
                         .to_string(),
                     order_info: Some(v1beta1::OrderInfo {
                         subaccount_id: get_default_subaccount_id_for_checked_address(
@@ -622,7 +625,7 @@ mod tests {
                         .to_string(),
                         fee_recipient: trader.address(),
                         price: "2200000000000000000".to_string(),
-                        quantity: "10000000000000000000".to_string(),
+                        quantity: "1000000000000000000000000".to_string(),
                         cid: "".to_string(),
                     }),
                     order_type: 2i32,
@@ -648,7 +651,7 @@ mod tests {
 
         let orders_after = exchange
             .query_trader_spot_orders(&v1beta1::QueryTraderSpotOrdersRequest {
-                market_id: "0xd5a22be807011d5e42d5b77da3f417e22676efae494109cd01c242ad46630115"
+                market_id: "0x096d3197b4db6da1328ec870b9fcc1d7ebe6ddeff2048efeee2f3d3d1854ecb4"
                     .to_string(),
                 subaccount_id: get_default_subaccount_id_for_checked_address(&Addr::unchecked(
                     trader.address(),
@@ -773,7 +776,7 @@ mod tests {
             trading_reward_campaign_update_proposal: None,
             binary_options_market_launch_proposals: vec![],
             binary_options_param_update_proposals: vec![],
-            denom_decimals_update_proposal: None,
+            auction_exchange_transfer_denom_decimals_update_proposal: None,
             fee_discount_proposal: None,
             market_forced_settlement_proposals: vec![],
             denom_min_notional_proposal: Some(v2::DenomMinNotionalProposal {
@@ -913,6 +916,9 @@ mod tests {
                     initial_margin_ratio: "100000000000000000".to_string(),
                     maintenance_margin_ratio: "10000000000000000".to_string(),
                     reduce_margin_ratio: "150000000000000000".to_string(),
+                    open_notional_cap: Some(OpenNotionalCap {
+                        cap: Some(Cap::Uncapped(OpenNotionalCapUncapped {})),
+                    }),
                 },
                 &admin,
             )

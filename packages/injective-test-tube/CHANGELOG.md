@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.18.0 - 2026-02-23
+
+### Changed
+
+- Bumped `injective-core@v1.18.0`
+- Bumped `injective-std@v1.18.0`
+
+## 1.18.0-beta.2 - 2026-01-20
+
+### Changed
+
+- Bumped `injective-core@v1.18.0-beta.2`
+- Bumped `injective-std@=1.18.0-beta.2`
+- Beta Release - Not available in public
+
 ## 1.14.0-rc2 - 2025-20-02
 
 ### Changed
