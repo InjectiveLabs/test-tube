@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.19.0 - 2026-04-29
+
+### Changed
+
+- Bumped `injective-core@v1.19.0`
+- Bumped `injective-std@=1.19.0`
+
+### Fixed
+
+- Updated oracle params compatibility for `injective-std@1.19.0`
+
 ## 1.18.0 - 2026-02-23
 
 ### Changed
