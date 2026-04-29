@@ -711,7 +711,9 @@ mod tests {
         QueryStorageRequest,
     };
     use prost::Message;
+    use rlp::RlpStream;
     use serde_json::{json, Value};
+    use sha3::{Digest, Keccak256};
     use test_tube_inj::{
         account::{Account, SigningAccount},
         runner::{result::RunnerExecuteResult, Runner},
@@ -720,8 +722,8 @@ mod tests {
 
     use crate::{
         injective_std::types::cosmos::{bank::v1beta1::MsgSend, base::v1beta1::Coin as BaseCoin},
-        Bank, Evm, EvmAccessListTx, EvmCall, EvmDynamicFeeTx, EvmLegacyTx, EvmQueryOptions,
-        InjectiveTestApp, RunnerResult,
+        Bank, Evm, EvmAccessListItem, EvmAccessListTx, EvmCall, EvmDynamicFeeTx, EvmLegacyTx,
+        EvmQueryOptions, InjectiveTestApp, RunnerResult,
     };
 
     struct DerivedEvmAccount {
@@ -812,6 +814,66 @@ mod tests {
             signer,
         )
         .unwrap();
+    }
+
+    // Test-only helper: builds runtime bytecode for a minimal contract that always
+    // returns the bytes appended after the opcode prefix.
+    fn build_runtime_returner_bytecode(return_data: &[u8]) -> Vec<u8> {
+        assert!(return_data.len() <= 0xffff, "return data too large");
+
+        let return_data_len = return_data.len() as u16;
+        let runtime_prefix = vec![
+            0x61,
+            (return_data_len >> 8) as u8,
+            return_data_len as u8,
+            0x61,
+            0x00,
+            0x0f, // the appended return bytes start right after this 15-byte prefix
+            0x60,
+            0x00,
+            0x39,
+            0x61,
+            (return_data_len >> 8) as u8,
+            return_data_len as u8,
+            0x60,
+            0x00,
+            0xf3,
+        ];
+
+        [runtime_prefix, return_data.to_vec()].concat()
+    }
+
+    // Test-only helper: wraps the runtime bytecode in initcode so CREATE returns
+    // that runtime and stores it as the deployed contract code.
+    fn build_deployment_initcode_for_returner(return_data: &[u8]) -> Vec<u8> {
+        let runtime_bytecode = build_runtime_returner_bytecode(return_data);
+        build_runtime_returner_bytecode(&runtime_bytecode)
+    }
+
+    fn decode_hex_address(address: &str) -> [u8; 20] {
+        let trimmed = address.strip_prefix("0x").unwrap_or(address);
+        let decoded = super::decode_hex_bytes(trimmed).expect("valid hex address");
+        decoded.try_into().expect("20-byte address")
+    }
+
+    fn predict_contract_address(sender: &str, nonce: u64) -> String {
+        let sender = decode_hex_address(sender);
+        let mut stream = RlpStream::new_list(2);
+        stream.append(&sender.as_slice());
+        stream.append(&nonce);
+
+        let hash = Keccak256::digest(stream.out());
+        format!("0x{}", hex_lower(&hash[12..]))
+    }
+
+    fn hex_lower(bytes: &[u8]) -> String {
+        const HEX: &[u8; 16] = b"0123456789abcdef";
+        let mut output = String::with_capacity(bytes.len() * 2);
+        for byte in bytes {
+            output.push(HEX[(byte >> 4) as usize] as char);
+            output.push(HEX[(byte & 0x0f) as usize] as char);
+        }
+        output
     }
 
     #[test]
@@ -1075,6 +1137,79 @@ mod tests {
     }
 
     #[test]
+    fn execute_legacy_tx_from_init_account_signer_integration() {
+        let app = InjectiveTestApp::new();
+        let bank = Bank::new(&app);
+        let evm = Evm::new(&app);
+        let funder = app
+            .init_account(&[cosmwasm_std::Coin::new(5_000_000_000u128, "inj")])
+            .unwrap();
+        let signer = app
+            .init_account(&[cosmwasm_std::Coin::new(1u128, "inj")])
+            .unwrap();
+        let sender = derive_evm_account(&signer);
+        let recipient = derive_evm_account(
+            &app.init_account(&[cosmwasm_std::Coin::new(1u128, "inj")])
+                .unwrap(),
+        );
+        let initial_sender_balance = 1_000_000_000u128;
+        let gas_price = 2_500u64;
+        let gas_limit = 21_000u64;
+        let transfer_value = 888u64;
+
+        assert_ne!(signer.address(), sender.inj_address);
+
+        fund_evm_account(&bank, &funder, &sender.inj_address, initial_sender_balance);
+
+        let sender_before = evm
+            .query_account(&QueryAccountRequest {
+                address: sender.eth_address.clone(),
+            })
+            .unwrap();
+        assert_eq!(sender_before.balance, initial_sender_balance.to_string());
+        assert_eq!(sender_before.nonce, 0);
+
+        let response = evm
+            .execute_legacy_tx(
+                &signer,
+                &EvmLegacyTx {
+                    nonce: 0,
+                    gas_price: u128::from(gas_price),
+                    gas_limit,
+                    to: Some(recipient.eth_address.clone()),
+                    value: u128::from(transfer_value),
+                    data: Vec::new(),
+                    chain_id: None,
+                },
+            )
+            .unwrap();
+        assert!(response.data.vm_error.is_empty());
+        assert!(!response.data.hash.is_empty());
+        assert_eq!(response.data.gas_used, gas_limit);
+
+        let sender_after = evm
+            .query_account(&QueryAccountRequest {
+                address: sender.eth_address,
+            })
+            .unwrap();
+        assert_eq!(sender_after.nonce, 1);
+        assert_eq!(
+            sender_after.balance,
+            (initial_sender_balance
+                - u128::from(transfer_value)
+                - u128::from(gas_price * gas_limit))
+            .to_string()
+        );
+
+        let recipient_after = evm
+            .query_balance(&QueryBalanceRequest {
+                address: recipient.eth_address,
+            })
+            .unwrap();
+        assert_eq!(recipient_after.balance, transfer_value.to_string());
+    }
+
+    #[test]
     fn execute_raw_ethereum_txs_batch_integration() {
         let app = InjectiveTestApp::new();
         let bank = Bank::new(&app);
@@ -1161,7 +1296,93 @@ mod tests {
     }
 
     #[test]
-    fn execute_access_list_tx_integration() {
+    fn deploy_contract_integration() {
+        let app = InjectiveTestApp::new();
+        let bank = Bank::new(&app);
+        let evm = Evm::new(&app);
+        let funder = app
+            .init_account(&[cosmwasm_std::Coin::new(5_000_000_000u128, "inj")])
+            .unwrap();
+        let signer = app
+            .get_first_validator_signing_account("inj".to_string(), 1.2)
+            .unwrap();
+        let sender = derive_evm_account(&signer);
+        let return_data = vec![0xde, 0xad, 0xbe, 0xef];
+        let expected_runtime_bytecode = build_runtime_returner_bytecode(&return_data);
+        let deployment_initcode = build_deployment_initcode_for_returner(&return_data);
+
+        fund_evm_account(&bank, &funder, &sender.inj_address, 2_000_000_000u128);
+
+        let sender_before = evm
+            .query_account(&QueryAccountRequest {
+                address: sender.eth_address.clone(),
+            })
+            .unwrap();
+        let contract_address = predict_contract_address(&sender.eth_address, sender_before.nonce);
+
+        let response = evm
+            .execute_legacy_tx(
+                &signer,
+                &EvmLegacyTx {
+                    nonce: sender_before.nonce,
+                    gas_price: 2_500,
+                    gas_limit: 500_000,
+                    to: None,
+                    value: 0,
+                    data: deployment_initcode,
+                    chain_id: None,
+                },
+            )
+            .unwrap();
+        assert!(response.data.vm_error.is_empty());
+        assert!(!response.data.hash.is_empty());
+        assert!(response.data.gas_used > 0);
+
+        let sender_after = evm
+            .query_account(&QueryAccountRequest {
+                address: sender.eth_address.clone(),
+            })
+            .unwrap();
+        assert_eq!(sender_after.nonce, sender_before.nonce + 1);
+
+        let code = evm
+            .query_code(&QueryCodeRequest {
+                address: contract_address.clone(),
+            })
+            .unwrap();
+        assert_eq!(code.code, expected_runtime_bytecode);
+
+        let chain_id = evm
+            .query_params(&QueryParamsRequest {})
+            .unwrap()
+            .params
+            .unwrap()
+            .chain_config
+            .unwrap()
+            .eip155_chain_id
+            .parse()
+            .unwrap();
+
+        let call_response = evm
+            .eth_call(
+                &EvmCall {
+                    to: Some(contract_address),
+                    ..Default::default()
+                },
+                &EvmQueryOptions {
+                    gas_cap: 500_000,
+                    proposer_address: None,
+                    chain_id,
+                    overrides: None,
+                },
+            )
+            .unwrap();
+        assert!(call_response.vm_error.is_empty());
+        assert_eq!(call_response.ret, return_data);
+    }
+
+    #[test]
+    fn execute_access_list_tx_with_entries_integration() {
         let app = InjectiveTestApp::new();
         let bank = Bank::new(&app);
         let evm = Evm::new(&app);
@@ -1185,17 +1406,21 @@ mod tests {
                 &EvmAccessListTx {
                     nonce: 0,
                     gas_price: 2_500,
-                    gas_limit: 21_000,
+                    gas_limit: 50_000,
                     to: Some(recipient.eth_address.clone()),
                     value: 333,
                     data: Vec::new(),
-                    access_list: Vec::new(),
+                    access_list: vec![EvmAccessListItem {
+                        address: recipient.eth_address.clone(),
+                        storage_keys: vec![format!("0x{}", "11".repeat(32))],
+                    }],
                     chain_id: None,
                 },
             )
             .unwrap();
         assert!(response.data.vm_error.is_empty());
         assert!(!response.data.hash.is_empty());
+        assert!(response.data.gas_used > 21_000);
 
         let sender_after = evm
             .query_account(&QueryAccountRequest {
@@ -1210,6 +1435,88 @@ mod tests {
             })
             .unwrap();
         assert_eq!(recipient_after.balance, "333");
+    }
+
+    #[test]
+    fn execute_access_list_txs_batch_integration() {
+        let app = InjectiveTestApp::new();
+        let bank = Bank::new(&app);
+        let evm = Evm::new(&app);
+        let funder = app
+            .init_account(&[cosmwasm_std::Coin::new(5_000_000_000u128, "inj")])
+            .unwrap();
+        let signer = app
+            .get_first_validator_signing_account("inj".to_string(), 1.2)
+            .unwrap();
+        let sender = derive_evm_account(&signer);
+        let recipient_one = derive_evm_account(
+            &app.init_account(&[cosmwasm_std::Coin::new(1u128, "inj")])
+                .unwrap(),
+        );
+        let recipient_two = derive_evm_account(
+            &app.init_account(&[cosmwasm_std::Coin::new(1u128, "inj")])
+                .unwrap(),
+        );
+
+        fund_evm_account(&bank, &funder, &sender.inj_address, 2_000_000_000u128);
+
+        let response = evm
+            .execute_access_list_txs(
+                &signer,
+                &[
+                    EvmAccessListTx {
+                        nonce: 0,
+                        gas_price: 2_500,
+                        gas_limit: 50_000,
+                        to: Some(recipient_one.eth_address.clone()),
+                        value: 111,
+                        data: Vec::new(),
+                        access_list: vec![EvmAccessListItem {
+                            address: recipient_one.eth_address.clone(),
+                            storage_keys: vec![format!("0x{}", "22".repeat(32))],
+                        }],
+                        chain_id: None,
+                    },
+                    EvmAccessListTx {
+                        nonce: 1,
+                        gas_price: 2_500,
+                        gas_limit: 50_000,
+                        to: Some(recipient_two.eth_address.clone()),
+                        value: 222,
+                        data: Vec::new(),
+                        access_list: vec![EvmAccessListItem {
+                            address: recipient_two.eth_address.clone(),
+                            storage_keys: vec![format!("0x{}", "33".repeat(32))],
+                        }],
+                        chain_id: None,
+                    },
+                ],
+            )
+            .unwrap();
+        assert_eq!(response.responses.len(), 2);
+        assert!(response.responses.iter().all(|res| res.vm_error.is_empty()));
+        assert!(response.gas_info.gas_used > 0);
+
+        let sender_after = evm
+            .query_account(&QueryAccountRequest {
+                address: sender.eth_address,
+            })
+            .unwrap();
+        assert_eq!(sender_after.nonce, 2);
+
+        let recipient_one_after = evm
+            .query_balance(&QueryBalanceRequest {
+                address: recipient_one.eth_address,
+            })
+            .unwrap();
+        assert_eq!(recipient_one_after.balance, "111");
+
+        let recipient_two_after = evm
+            .query_balance(&QueryBalanceRequest {
+                address: recipient_two.eth_address,
+            })
+            .unwrap();
+        assert_eq!(recipient_two_after.balance, "222");
     }
 
     #[test]
@@ -1263,5 +1570,83 @@ mod tests {
             })
             .unwrap();
         assert_eq!(recipient_after.balance, "444");
+    }
+
+    #[test]
+    fn execute_dynamic_fee_txs_batch_integration() {
+        let app = InjectiveTestApp::new();
+        let bank = Bank::new(&app);
+        let evm = Evm::new(&app);
+        let funder = app
+            .init_account(&[cosmwasm_std::Coin::new(5_000_000_000u128, "inj")])
+            .unwrap();
+        let signer = app
+            .get_first_validator_signing_account("inj".to_string(), 1.2)
+            .unwrap();
+        let sender = derive_evm_account(&signer);
+        let recipient_one = derive_evm_account(
+            &app.init_account(&[cosmwasm_std::Coin::new(1u128, "inj")])
+                .unwrap(),
+        );
+        let recipient_two = derive_evm_account(
+            &app.init_account(&[cosmwasm_std::Coin::new(1u128, "inj")])
+                .unwrap(),
+        );
+
+        fund_evm_account(&bank, &funder, &sender.inj_address, 2_000_000_000u128);
+
+        let response = evm
+            .execute_dynamic_fee_txs(
+                &signer,
+                &[
+                    EvmDynamicFeeTx {
+                        nonce: 0,
+                        gas_tip_cap: 2_000,
+                        gas_fee_cap: 2_500,
+                        gas_limit: 21_000,
+                        to: Some(recipient_one.eth_address.clone()),
+                        value: 555,
+                        data: Vec::new(),
+                        access_list: Vec::new(),
+                        chain_id: None,
+                    },
+                    EvmDynamicFeeTx {
+                        nonce: 1,
+                        gas_tip_cap: 2_000,
+                        gas_fee_cap: 2_500,
+                        gas_limit: 21_000,
+                        to: Some(recipient_two.eth_address.clone()),
+                        value: 666,
+                        data: Vec::new(),
+                        access_list: Vec::new(),
+                        chain_id: None,
+                    },
+                ],
+            )
+            .unwrap();
+        assert_eq!(response.responses.len(), 2);
+        assert!(response.responses.iter().all(|res| res.vm_error.is_empty()));
+        assert!(response.gas_info.gas_used > 0);
+
+        let sender_after = evm
+            .query_account(&QueryAccountRequest {
+                address: sender.eth_address,
+            })
+            .unwrap();
+        assert_eq!(sender_after.nonce, 2);
+
+        let recipient_one_after = evm
+            .query_balance(&QueryBalanceRequest {
+                address: recipient_one.eth_address,
+            })
+            .unwrap();
+        assert_eq!(recipient_one_after.balance, "555");
+
+        let recipient_two_after = evm
+            .query_balance(&QueryBalanceRequest {
+                address: recipient_two.eth_address,
+            })
+            .unwrap();
+        assert_eq!(recipient_two_after.balance, "666");
     }
 }

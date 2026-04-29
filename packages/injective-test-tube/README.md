@@ -9,6 +9,7 @@ The `dev` branch depends on currently private repos, but you can use published v
 - [Getting Started](#getting-started)
 - [Debugging](#debugging)
 - [Using Module Wrapper](#using-module-wrapper)
+- [EVM Support](#evm-support)
 - [Versioning](#versioning)
 
 ## Getting Started
@@ -245,6 +246,26 @@ In some cases, you might want to interact directly with appchain logic to setup 
 Module wrappers provides convenient functions to interact with the appchain's module.
 
 Additional examples can be found in the [modules](./src/module/) directory.
+
+The wrapper surface now also includes first-class `Evm` and `Erc20` modules alongside the existing Cosmos and Wasm helpers.
+
+## EVM Support
+
+`injective-test-tube` now exposes the Injective EVM surface directly.
+
+Available `Evm` features include:
+
+- EVM account, balance, storage, code, and params queries
+- `eth_call` and `estimate_gas`
+- execution of raw signed Ethereum transactions through the canonical `ExtensionOptionsEthereumTx` path used by Injective Core
+- Rust-side signing helpers for:
+  - legacy Ethereum transactions
+  - access-list Ethereum transactions
+  - dynamic-fee Ethereum transactions
+
+The crate also exposes an `Erc20` module for basic ERC20 token-pair queries.
+
+The design intentionally keeps EVM execution aligned with core behavior: Rust signing helpers produce raw Ethereum transaction bytes, and the test environment submits them through the real Injective EVM transaction envelope instead of a mock or custom shortcut path.
 
 ## Versioning
 
