@@ -23,6 +23,27 @@ use crate::runner::Runner;
 
 pub const INJECTIVE_MIN_GAS_PRICE: u128 = 2_500;
 
+fn decode_signing_key(base64_priv: &str) -> RunnerResult<([u8; 32], SigningKey)> {
+    let secp256k1_priv = BASE64_STANDARD
+        .decode(base64_priv)
+        .map_err(DecodeError::Base64DecodeError)?;
+
+    let private_key_bytes: [u8; 32] =
+        secp256k1_priv
+            .as_slice()
+            .try_into()
+            .map_err(|_| DecodeError::SigningKeyDecodeError {
+                msg: "expected 32-byte secp256k1 private key".to_string(),
+            })?;
+
+    let signing_key = SigningKey::from_slice(&private_key_bytes).map_err(|e| {
+        let msg = e.to_string();
+        DecodeError::SigningKeyDecodeError { msg }
+    })?;
+
+    Ok((private_key_bytes, signing_key))
+}
+
 #[derive(Debug, PartialEq)]
 pub struct BaseApp {
     id: u64,
@@ -96,15 +117,12 @@ impl BaseApp {
         .map_err(DecodeError::Utf8Error)?
         .to_string();
 
-        let secp256k1_priv = BASE64_STANDARD
-            .decode(pkey)
-            .map_err(DecodeError::Base64DecodeError)?;
-
-        let signing_key = SigningKey::from_slice(&secp256k1_priv).unwrap();
+        let (private_key_bytes, signing_key) = decode_signing_key(&pkey)?;
 
         let validator = SigningAccount::new(
             self.address_prefix.clone(),
             signing_key,
+            private_key_bytes,
             FeeSetting::Auto {
                 gas_price: Coin::new(INJECTIVE_MIN_GAS_PRICE, denom),
                 gas_adjustment,
@@ -182,18 +200,12 @@ impl BaseApp {
         .map_err(DecodeError::Utf8Error)?
         .to_string();
 
-        let secp256k1_priv = BASE64_STANDARD
-            .decode(base64_priv)
-            .map_err(DecodeError::Base64DecodeError)?;
-
-        let signing_key = SigningKey::from_slice(&secp256k1_priv).map_err(|e| {
-            let msg = e.to_string();
-            DecodeError::SigningKeyDecodeError { msg }
-        })?;
+        let (private_key_bytes, signing_key) = decode_signing_key(&base64_priv)?;
 
         Ok(SigningAccount::new(
             self.address_prefix.clone(),
             signing_key,
+            private_key_bytes,
             FeeSetting::Auto {
                 gas_price: Coin::new(INJECTIVE_MIN_GAS_PRICE, self.fee_denom.clone()),
                 gas_adjustment: self.default_gas_adjustment,
@@ -223,18 +235,12 @@ impl BaseApp {
         .map_err(DecodeError::Utf8Error)?
         .to_string();
 
-        let secp256k1_priv = BASE64_STANDARD
-            .decode(base64_priv)
-            .map_err(DecodeError::Base64DecodeError)?;
-
-        let signing_key = SigningKey::from_slice(&secp256k1_priv).map_err(|e| {
-            let msg = e.to_string();
-            DecodeError::SigningKeyDecodeError { msg }
-        })?;
+        let (private_key_bytes, signing_key) = decode_signing_key(&base64_priv)?;
 
         Ok(SigningAccount::new(
             self.address_prefix.clone(),
             signing_key,
+            private_key_bytes,
             FeeSetting::Auto {
                 gas_price: Coin::new(INJECTIVE_MIN_GAS_PRICE, self.fee_denom.clone()),
                 gas_adjustment: self.default_gas_adjustment,

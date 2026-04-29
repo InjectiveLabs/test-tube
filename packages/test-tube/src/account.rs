@@ -19,14 +19,21 @@ pub trait Account {
 pub struct SigningAccount {
     prefix: String,
     signing_key: SigningKey,
+    private_key_bytes: [u8; 32],
     fee_setting: FeeSetting,
 }
 
 impl SigningAccount {
-    pub fn new(prefix: String, signing_key: SigningKey, fee_setting: FeeSetting) -> Self {
+    pub fn new(
+        prefix: String,
+        signing_key: SigningKey,
+        private_key_bytes: [u8; 32],
+        fee_setting: FeeSetting,
+    ) -> Self {
         SigningAccount {
             prefix,
             signing_key,
+            private_key_bytes,
             fee_setting,
         }
     }
@@ -35,6 +42,7 @@ impl SigningAccount {
         Self {
             prefix,
             signing_key: self.signing_key,
+            private_key_bytes: self.private_key_bytes,
             fee_setting: self.fee_setting,
         }
     }
@@ -47,6 +55,7 @@ impl SigningAccount {
         Self {
             prefix: self.prefix,
             signing_key: self.signing_key,
+            private_key_bytes: self.private_key_bytes,
             fee_setting,
         }
     }
@@ -65,6 +74,10 @@ impl Account for SigningAccount {
 impl SigningAccount {
     pub fn signing_key(&'_ self) -> &'_ SigningKey {
         &self.signing_key
+    }
+
+    pub fn private_key_bytes(&self) -> &[u8; 32] {
+        &self.private_key_bytes
     }
 }
 

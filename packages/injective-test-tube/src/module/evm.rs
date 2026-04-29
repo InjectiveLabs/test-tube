@@ -9,9 +9,13 @@ use injective_std::types::injective::evm::v1::{
     QueryCodeResponse, QueryParamsRequest, QueryParamsResponse, QueryStorageRequest,
     QueryStorageResponse,
 };
+use k256::{ecdsa::SigningKey as K256SigningKey, elliptic_curve::sec1::ToEncodedPoint, PublicKey};
 use prost::Message;
+use rlp::RlpStream;
 use serde_json::{Map, Value};
+use sha3::{Digest, Keccak256};
 use test_tube_inj::{
+    account::Account,
     fn_query,
     module::Module,
     runner::{
@@ -39,6 +43,48 @@ pub struct EvmQueryOptions {
     pub overrides: Option<Value>,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct EvmLegacyTx {
+    pub chain_id: Option<u64>,
+    pub nonce: u64,
+    pub gas_price: u128,
+    pub gas_limit: u64,
+    pub to: Option<String>,
+    pub value: u128,
+    pub data: Vec<u8>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct EvmAccessListItem {
+    pub address: String,
+    pub storage_keys: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct EvmAccessListTx {
+    pub chain_id: Option<u64>,
+    pub nonce: u64,
+    pub gas_price: u128,
+    pub gas_limit: u64,
+    pub to: Option<String>,
+    pub value: u128,
+    pub data: Vec<u8>,
+    pub access_list: Vec<EvmAccessListItem>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct EvmDynamicFeeTx {
+    pub chain_id: Option<u64>,
+    pub nonce: u64,
+    pub gas_tip_cap: u128,
+    pub gas_fee_cap: u128,
+    pub gas_limit: u64,
+    pub to: Option<String>,
+    pub value: u128,
+    pub data: Vec<u8>,
+    pub access_list: Vec<EvmAccessListItem>,
+}
+
 pub struct Evm<'a, R: Runner<'a>> {
     runner: &'a R,
 }
@@ -61,6 +107,21 @@ impl<'a, R> Evm<'a, R>
 where
     R: Runner<'a>,
 {
+    fn query_eip155_chain_id(&self) -> RunnerResult<u64> {
+        self.query_params(&QueryParamsRequest {})?
+            .params
+            .ok_or(RunnerError::QueryError {
+                msg: "missing EVM params".to_string(),
+            })?
+            .chain_config
+            .ok_or(RunnerError::QueryError {
+                msg: "missing EVM chain config".to_string(),
+            })?
+            .eip155_chain_id
+            .parse()
+            .map_err(|err| RunnerError::GenericError(format!("invalid EVM chain id: {err}")))
+    }
+
     fn build_eth_call_request(
         &self,
         call: &EvmCall,
@@ -129,6 +190,45 @@ where
     ) -> RunnerResult<EstimateGasResponse> {
         self.query_estimate_gas(&self.build_eth_call_request(call, options)?)
     }
+
+    pub fn sign_legacy_tx(
+        &self,
+        signer: &test_tube_inj::account::SigningAccount,
+        tx: &EvmLegacyTx,
+    ) -> RunnerResult<Vec<u8>> {
+        let chain_id = match tx.chain_id {
+            Some(chain_id) => chain_id,
+            None => self.query_eip155_chain_id()?,
+        };
+
+        sign_legacy_raw_tx(signer.private_key_bytes(), tx, chain_id)
+    }
+
+    pub fn sign_access_list_tx(
+        &self,
+        signer: &test_tube_inj::account::SigningAccount,
+        tx: &EvmAccessListTx,
+    ) -> RunnerResult<Vec<u8>> {
+        let chain_id = match tx.chain_id {
+            Some(chain_id) => chain_id,
+            None => self.query_eip155_chain_id()?,
+        };
+
+        sign_access_list_raw_tx(signer.private_key_bytes(), tx, chain_id)
+    }
+
+    pub fn sign_dynamic_fee_tx(
+        &self,
+        signer: &test_tube_inj::account::SigningAccount,
+        tx: &EvmDynamicFeeTx,
+    ) -> RunnerResult<Vec<u8>> {
+        let chain_id = match tx.chain_id {
+            Some(chain_id) => chain_id,
+            None => self.query_eip155_chain_id()?,
+        };
+
+        sign_dynamic_fee_raw_tx(signer.private_key_bytes(), tx, chain_id)
+    }
 }
 
 fn build_call_args(call: &EvmCall) -> Value {
@@ -180,6 +280,275 @@ fn format_bytes(bytes: &[u8]) -> String {
     }
 
     encoded
+}
+
+pub fn derive_evm_address<A: Account>(account: &A) -> String {
+    format_bytes(&derive_evm_address_bytes(account))
+}
+
+pub fn derive_injective_evm_address<A: Account>(account: &A) -> String {
+    cosmrs::AccountId::new("inj", &derive_evm_address_bytes(account))
+        .expect("derived EVM bytes should form a valid Injective address")
+        .to_string()
+}
+
+fn derive_evm_address_bytes<A: Account>(account: &A) -> [u8; 20] {
+    let pubkey_bytes = account.public_key().to_bytes();
+    let pubkey = PublicKey::from_sec1_bytes(&pubkey_bytes)
+        .expect("account should use a valid secp256k1 public key");
+    let uncompressed = pubkey.to_encoded_point(false);
+    let hash = Keccak256::digest(&uncompressed.as_bytes()[1..]);
+
+    hash[12..]
+        .try_into()
+        .expect("Keccak-derived EVM address should contain 20 bytes")
+}
+
+fn decode_hex_nibble(ch: u8) -> Result<u8, RunnerError> {
+    match ch {
+        b'0'..=b'9' => Ok(ch - b'0'),
+        b'a'..=b'f' => Ok(ch - b'a' + 10),
+        b'A'..=b'F' => Ok(ch - b'A' + 10),
+        _ => Err(RunnerError::GenericError(format!(
+            "invalid hex character: {}",
+            ch as char
+        ))),
+    }
+}
+
+fn decode_hex_bytes(hex: &str) -> RunnerResult<Vec<u8>> {
+    let trimmed = hex.strip_prefix("0x").unwrap_or(hex);
+    if trimmed.len() % 2 != 0 {
+        return Err(RunnerError::GenericError(
+            "hex input must have an even length".to_string(),
+        ));
+    }
+
+    trimmed
+        .as_bytes()
+        .chunks_exact(2)
+        .map(|pair| Ok((decode_hex_nibble(pair[0])? << 4) | decode_hex_nibble(pair[1])?))
+        .collect()
+}
+
+fn parse_evm_address(address: &str) -> RunnerResult<[u8; 20]> {
+    decode_hex_bytes(address)?
+        .try_into()
+        .map_err(|_| RunnerError::GenericError("EVM address should contain 20 bytes".to_string()))
+}
+
+fn trim_left_zeroes(bytes: &[u8]) -> Vec<u8> {
+    let first_non_zero = bytes
+        .iter()
+        .position(|byte| *byte != 0)
+        .unwrap_or(bytes.len());
+    bytes[first_non_zero..].to_vec()
+}
+
+fn append_u128(stream: &mut RlpStream, value: u128) {
+    stream.append(&trim_left_zeroes(&value.to_be_bytes()));
+}
+
+type ParsedAccessList = Vec<([u8; 20], Vec<[u8; 32]>)>;
+
+fn parse_storage_key(storage_key: &str) -> RunnerResult<[u8; 32]> {
+    decode_hex_bytes(storage_key)?
+        .try_into()
+        .map_err(|_| RunnerError::GenericError("storage key should contain 32 bytes".to_string()))
+}
+
+fn parse_access_list(access_list: &[EvmAccessListItem]) -> RunnerResult<ParsedAccessList> {
+    access_list
+        .iter()
+        .map(|item| {
+            let address = parse_evm_address(&item.address)?;
+            let storage_keys = item
+                .storage_keys
+                .iter()
+                .map(|storage_key| parse_storage_key(storage_key))
+                .collect::<Result<Vec<_>, _>>()?;
+
+            Ok((address, storage_keys))
+        })
+        .collect()
+}
+
+fn append_access_list(stream: &mut RlpStream, access_list: &ParsedAccessList) {
+    stream.begin_list(access_list.len());
+    for (address, storage_keys) in access_list {
+        stream.begin_list(2);
+        stream.append(&address.to_vec());
+        stream.begin_list(storage_keys.len());
+        for storage_key in storage_keys {
+            stream.append(&storage_key.to_vec());
+        }
+    }
+}
+
+fn sign_legacy_raw_tx(
+    private_key_bytes: &[u8; 32],
+    tx: &EvmLegacyTx,
+    chain_id: u64,
+) -> RunnerResult<Vec<u8>> {
+    let signing_key = K256SigningKey::from_slice(private_key_bytes).map_err(|err| {
+        RunnerError::GenericError(format!("invalid secp256k1 private key bytes: {err}"))
+    })?;
+    let to = tx.to.as_deref().map(parse_evm_address).transpose()?;
+
+    let mut signing_payload = RlpStream::new_list(9);
+    signing_payload.append(&tx.nonce);
+    append_u128(&mut signing_payload, tx.gas_price);
+    signing_payload.append(&tx.gas_limit);
+    match to {
+        Some(to) => signing_payload.append(&to.to_vec()),
+        None => signing_payload.append(&Vec::<u8>::new()),
+    };
+    append_u128(&mut signing_payload, tx.value);
+    signing_payload.append(&tx.data);
+    signing_payload.append(&chain_id);
+    signing_payload.append(&0u8);
+    signing_payload.append(&0u8);
+
+    let mut digest = Keccak256::new();
+    digest.update(signing_payload.out());
+
+    let (signature, recovery_id) = signing_key
+        .sign_digest_recoverable(digest)
+        .map_err(|err| RunnerError::GenericError(format!("failed to sign legacy tx: {err}")))?;
+    let signature_bytes = signature.to_bytes();
+    let v = chain_id * 2 + 35 + u64::from(recovery_id.to_byte());
+
+    let mut signed_tx = RlpStream::new_list(9);
+    signed_tx.append(&tx.nonce);
+    append_u128(&mut signed_tx, tx.gas_price);
+    signed_tx.append(&tx.gas_limit);
+    match to {
+        Some(to) => signed_tx.append(&to.to_vec()),
+        None => signed_tx.append(&Vec::<u8>::new()),
+    };
+    append_u128(&mut signed_tx, tx.value);
+    signed_tx.append(&tx.data);
+    signed_tx.append(&v);
+    signed_tx.append(&trim_left_zeroes(&signature_bytes[..32]));
+    signed_tx.append(&trim_left_zeroes(&signature_bytes[32..]));
+
+    Ok(signed_tx.out().to_vec())
+}
+
+fn sign_access_list_raw_tx(
+    private_key_bytes: &[u8; 32],
+    tx: &EvmAccessListTx,
+    chain_id: u64,
+) -> RunnerResult<Vec<u8>> {
+    let signing_key = K256SigningKey::from_slice(private_key_bytes).map_err(|err| {
+        RunnerError::GenericError(format!("invalid secp256k1 private key bytes: {err}"))
+    })?;
+    let to = tx.to.as_deref().map(parse_evm_address).transpose()?;
+    let access_list = parse_access_list(&tx.access_list)?;
+
+    let mut signing_payload = RlpStream::new_list(8);
+    signing_payload.append(&chain_id);
+    signing_payload.append(&tx.nonce);
+    append_u128(&mut signing_payload, tx.gas_price);
+    signing_payload.append(&tx.gas_limit);
+    match to {
+        Some(to) => signing_payload.append(&to.to_vec()),
+        None => signing_payload.append(&Vec::<u8>::new()),
+    };
+    append_u128(&mut signing_payload, tx.value);
+    signing_payload.append(&tx.data);
+    append_access_list(&mut signing_payload, &access_list);
+
+    let mut digest = Keccak256::new();
+    digest.update([0x01]);
+    digest.update(signing_payload.out());
+
+    let (signature, recovery_id) = signing_key.sign_digest_recoverable(digest).map_err(|err| {
+        RunnerError::GenericError(format!("failed to sign access-list tx: {err}"))
+    })?;
+    let signature_bytes = signature.to_bytes();
+
+    let mut signed_payload = RlpStream::new_list(11);
+    signed_payload.append(&chain_id);
+    signed_payload.append(&tx.nonce);
+    append_u128(&mut signed_payload, tx.gas_price);
+    signed_payload.append(&tx.gas_limit);
+    match to {
+        Some(to) => signed_payload.append(&to.to_vec()),
+        None => signed_payload.append(&Vec::<u8>::new()),
+    };
+    append_u128(&mut signed_payload, tx.value);
+    signed_payload.append(&tx.data);
+    append_access_list(&mut signed_payload, &access_list);
+    signed_payload.append(&u64::from(recovery_id.to_byte()));
+    signed_payload.append(&trim_left_zeroes(&signature_bytes[..32]));
+    signed_payload.append(&trim_left_zeroes(&signature_bytes[32..]));
+
+    let signed_payload_bytes = signed_payload.out().to_vec();
+    let mut raw_tx = Vec::with_capacity(1 + signed_payload_bytes.len());
+    raw_tx.push(0x01);
+    raw_tx.extend_from_slice(&signed_payload_bytes);
+
+    Ok(raw_tx)
+}
+
+fn sign_dynamic_fee_raw_tx(
+    private_key_bytes: &[u8; 32],
+    tx: &EvmDynamicFeeTx,
+    chain_id: u64,
+) -> RunnerResult<Vec<u8>> {
+    let signing_key = K256SigningKey::from_slice(private_key_bytes).map_err(|err| {
+        RunnerError::GenericError(format!("invalid secp256k1 private key bytes: {err}"))
+    })?;
+    let to = tx.to.as_deref().map(parse_evm_address).transpose()?;
+    let access_list = parse_access_list(&tx.access_list)?;
+
+    let mut signing_payload = RlpStream::new_list(9);
+    signing_payload.append(&chain_id);
+    signing_payload.append(&tx.nonce);
+    append_u128(&mut signing_payload, tx.gas_tip_cap);
+    append_u128(&mut signing_payload, tx.gas_fee_cap);
+    signing_payload.append(&tx.gas_limit);
+    match to {
+        Some(to) => signing_payload.append(&to.to_vec()),
+        None => signing_payload.append(&Vec::<u8>::new()),
+    };
+    append_u128(&mut signing_payload, tx.value);
+    signing_payload.append(&tx.data);
+    append_access_list(&mut signing_payload, &access_list);
+
+    let mut digest = Keccak256::new();
+    digest.update([0x02]);
+    digest.update(signing_payload.out());
+
+    let (signature, recovery_id) = signing_key.sign_digest_recoverable(digest).map_err(|err| {
+        RunnerError::GenericError(format!("failed to sign dynamic-fee tx: {err}"))
+    })?;
+    let signature_bytes = signature.to_bytes();
+
+    let mut signed_payload = RlpStream::new_list(12);
+    signed_payload.append(&chain_id);
+    signed_payload.append(&tx.nonce);
+    append_u128(&mut signed_payload, tx.gas_tip_cap);
+    append_u128(&mut signed_payload, tx.gas_fee_cap);
+    signed_payload.append(&tx.gas_limit);
+    match to {
+        Some(to) => signed_payload.append(&to.to_vec()),
+        None => signed_payload.append(&Vec::<u8>::new()),
+    };
+    append_u128(&mut signed_payload, tx.value);
+    signed_payload.append(&tx.data);
+    append_access_list(&mut signed_payload, &access_list);
+    signed_payload.append(&u64::from(recovery_id.to_byte()));
+    signed_payload.append(&trim_left_zeroes(&signature_bytes[..32]));
+    signed_payload.append(&trim_left_zeroes(&signature_bytes[32..]));
+
+    let signed_payload_bytes = signed_payload.out().to_vec();
+    let mut raw_tx = Vec::with_capacity(1 + signed_payload_bytes.len());
+    raw_tx.push(0x02);
+    raw_tx.extend_from_slice(&signed_payload_bytes);
+
+    Ok(raw_tx)
 }
 
 fn decode_events(tx_result: &ExecTxResult) -> Result<Vec<Event>, DecodeError> {
@@ -236,6 +605,72 @@ fn decode_evm_execute_response(res: ResponseFinalizeBlock) -> RunnerResult<EvmEx
 }
 
 impl<'a> Evm<'a, crate::InjectiveTestApp> {
+    pub fn execute_access_list_txs(
+        &self,
+        signer: &test_tube_inj::account::SigningAccount,
+        txs: &[EvmAccessListTx],
+    ) -> RunnerResult<EvmExecuteResponse> {
+        let raw_txs = txs
+            .iter()
+            .map(|tx| self.sign_access_list_tx(signer, tx))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        self.execute_raw_ethereum_txs(&raw_txs)
+    }
+
+    pub fn execute_access_list_tx(
+        &self,
+        signer: &test_tube_inj::account::SigningAccount,
+        tx: &EvmAccessListTx,
+    ) -> RunnerResult<ExecuteResponse<MsgEthereumTxResponse>> {
+        let raw_tx = self.sign_access_list_tx(signer, tx)?;
+        self.execute_raw_ethereum_tx(raw_tx)
+    }
+
+    pub fn execute_dynamic_fee_txs(
+        &self,
+        signer: &test_tube_inj::account::SigningAccount,
+        txs: &[EvmDynamicFeeTx],
+    ) -> RunnerResult<EvmExecuteResponse> {
+        let raw_txs = txs
+            .iter()
+            .map(|tx| self.sign_dynamic_fee_tx(signer, tx))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        self.execute_raw_ethereum_txs(&raw_txs)
+    }
+
+    pub fn execute_dynamic_fee_tx(
+        &self,
+        signer: &test_tube_inj::account::SigningAccount,
+        tx: &EvmDynamicFeeTx,
+    ) -> RunnerResult<ExecuteResponse<MsgEthereumTxResponse>> {
+        let raw_tx = self.sign_dynamic_fee_tx(signer, tx)?;
+        self.execute_raw_ethereum_tx(raw_tx)
+    }
+
+    pub fn execute_legacy_txs(
+        &self,
+        signer: &test_tube_inj::account::SigningAccount,
+        txs: &[EvmLegacyTx],
+    ) -> RunnerResult<EvmExecuteResponse> {
+        let raw_txs = txs
+            .iter()
+            .map(|tx| self.sign_legacy_tx(signer, tx))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        self.execute_raw_ethereum_txs(&raw_txs)
+    }
+
+    pub fn execute_legacy_tx(
+        &self,
+        signer: &test_tube_inj::account::SigningAccount,
+        tx: &EvmLegacyTx,
+    ) -> RunnerResult<ExecuteResponse<MsgEthereumTxResponse>> {
+        let raw_tx = self.sign_legacy_tx(signer, tx)?;
+        self.execute_raw_ethereum_tx(raw_tx)
+    }
+
     pub fn execute_raw_ethereum_txs(
         &self,
         raw_txs: &[Vec<u8>],
@@ -270,20 +705,13 @@ impl<'a> Evm<'a, crate::InjectiveTestApp> {
 mod tests {
     use std::cell::RefCell;
 
-    use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
-    use base64::Engine as _;
-    use cosmrs::{AccountId, Any};
+    use cosmrs::Any;
     use injective_std::types::injective::evm::v1::{
         QueryAccountRequest, QueryBalanceRequest, QueryCodeRequest, QueryParamsRequest,
         QueryStorageRequest,
     };
-    use k256::{
-        ecdsa::SigningKey as K256SigningKey, elliptic_curve::sec1::ToEncodedPoint, PublicKey,
-    };
     use prost::Message;
-    use rlp::RlpStream;
     use serde_json::{json, Value};
-    use sha3::{Digest, Keccak256};
     use test_tube_inj::{
         account::{Account, SigningAccount},
         runner::{result::RunnerExecuteResult, Runner},
@@ -292,7 +720,8 @@ mod tests {
 
     use crate::{
         injective_std::types::cosmos::{bank::v1beta1::MsgSend, base::v1beta1::Coin as BaseCoin},
-        Bank, Evm, EvmCall, EvmQueryOptions, InjectiveTestApp, RunnerResult,
+        Bank, Evm, EvmAccessListTx, EvmCall, EvmDynamicFeeTx, EvmLegacyTx, EvmQueryOptions,
+        InjectiveTestApp, RunnerResult,
     };
 
     struct DerivedEvmAccount {
@@ -359,115 +788,10 @@ mod tests {
     }
 
     fn derive_evm_account(account: &SigningAccount) -> DerivedEvmAccount {
-        let pubkey_bytes = account.public_key().to_bytes();
-        let pubkey = PublicKey::from_sec1_bytes(&pubkey_bytes)
-            .expect("signing account should use a valid secp256k1 public key");
-        let uncompressed = pubkey.to_encoded_point(false);
-        let hash = Keccak256::digest(&uncompressed.as_bytes()[1..]);
-        let eth_address_bytes = &hash[12..];
-
         DerivedEvmAccount {
-            inj_address: AccountId::new("inj", eth_address_bytes)
-                .expect("derived EVM bytes should form a valid Injective address")
-                .to_string(),
-            eth_address: super::format_bytes(eth_address_bytes),
+            inj_address: super::derive_injective_evm_address(account),
+            eth_address: super::derive_evm_address(account),
         }
-    }
-
-    fn evm_chain_id(evm: &Evm<'_, InjectiveTestApp>) -> u64 {
-        evm.query_params(&QueryParamsRequest {})
-            .unwrap()
-            .params
-            .expect("EVM params should be present")
-            .chain_config
-            .expect("EVM chain config should be present")
-            .eip155_chain_id
-            .parse()
-            .expect("EVM chain id should parse as u64")
-    }
-
-    fn decode_hex_nibble(ch: u8) -> u8 {
-        match ch {
-            b'0'..=b'9' => ch - b'0',
-            b'a'..=b'f' => ch - b'a' + 10,
-            b'A'..=b'F' => ch - b'A' + 10,
-            _ => panic!("invalid hex character"),
-        }
-    }
-
-    fn decode_hex_bytes(hex: &str) -> Vec<u8> {
-        let trimmed = hex.strip_prefix("0x").unwrap_or(hex);
-        assert_eq!(trimmed.len() % 2, 0, "hex input must have an even length");
-
-        trimmed
-            .as_bytes()
-            .chunks_exact(2)
-            .map(|pair| (decode_hex_nibble(pair[0]) << 4) | decode_hex_nibble(pair[1]))
-            .collect()
-    }
-
-    fn parse_evm_address(address: &str) -> [u8; 20] {
-        decode_hex_bytes(address)
-            .try_into()
-            .expect("EVM address should contain 20 bytes")
-    }
-
-    fn trim_left_zeroes(bytes: &[u8]) -> Vec<u8> {
-        let first_non_zero = bytes
-            .iter()
-            .position(|byte| *byte != 0)
-            .unwrap_or(bytes.len());
-        bytes[first_non_zero..].to_vec()
-    }
-
-    fn build_legacy_signed_raw_tx(
-        private_key_base64: &str,
-        chain_id: u64,
-        nonce: u64,
-        gas_price: u64,
-        gas_limit: u64,
-        to: [u8; 20],
-        value: u64,
-        data: &[u8],
-    ) -> Vec<u8> {
-        let private_key_bytes = BASE64_STANDARD
-            .decode(private_key_base64)
-            .expect("validator private key should be valid base64");
-        let signing_key = K256SigningKey::from_slice(&private_key_bytes)
-            .expect("validator private key should be valid secp256k1 bytes");
-
-        let mut signing_payload = RlpStream::new_list(9);
-        signing_payload.append(&nonce);
-        signing_payload.append(&gas_price);
-        signing_payload.append(&gas_limit);
-        signing_payload.append(&to.to_vec());
-        signing_payload.append(&value);
-        signing_payload.append(&data.to_vec());
-        signing_payload.append(&chain_id);
-        signing_payload.append(&0u8);
-        signing_payload.append(&0u8);
-
-        let mut digest = Keccak256::new();
-        digest.update(signing_payload.out());
-
-        let (signature, recovery_id) = signing_key
-            .sign_digest_recoverable(digest)
-            .expect("legacy transaction should sign");
-        let signature_bytes = signature.to_bytes();
-        let v = chain_id * 2 + 35 + u64::from(recovery_id.to_byte());
-
-        let mut signed_tx = RlpStream::new_list(9);
-        signed_tx.append(&nonce);
-        signed_tx.append(&gas_price);
-        signed_tx.append(&gas_limit);
-        signed_tx.append(&to.to_vec());
-        signed_tx.append(&value);
-        signed_tx.append(&data.to_vec());
-        signed_tx.append(&v);
-        signed_tx.append(&trim_left_zeroes(&signature_bytes[..32]));
-        signed_tx.append(&trim_left_zeroes(&signature_bytes[32..]));
-
-        signed_tx.out().to_vec()
     }
 
     fn fund_evm_account(
@@ -688,7 +1012,6 @@ mod tests {
         let validator = app
             .get_first_validator_signing_account("inj".to_string(), 1.2)
             .unwrap();
-        let validator_private_key = app.get_first_validator_private_key().unwrap();
         let sender = derive_evm_account(&validator);
         let recipient = derive_evm_account(
             &app.init_account(&[cosmwasm_std::Coin::new(1u128, "inj")])
@@ -709,16 +1032,20 @@ mod tests {
         assert_eq!(sender_before.balance, initial_sender_balance.to_string());
         assert_eq!(sender_before.nonce, 0);
 
-        let raw_tx = build_legacy_signed_raw_tx(
-            &validator_private_key,
-            evm_chain_id(&evm),
-            0,
-            gas_price,
-            gas_limit,
-            parse_evm_address(&recipient.eth_address),
-            transfer_value,
-            &[],
-        );
+        let raw_tx = evm
+            .sign_legacy_tx(
+                &validator,
+                &EvmLegacyTx {
+                    nonce: 0,
+                    gas_price: u128::from(gas_price),
+                    gas_limit,
+                    to: Some(recipient.eth_address.clone()),
+                    value: u128::from(transfer_value),
+                    data: Vec::new(),
+                    chain_id: None,
+                },
+            )
+            .unwrap();
 
         let response = evm.execute_raw_ethereum_tx(raw_tx).unwrap();
         assert!(response.data.vm_error.is_empty());
@@ -758,7 +1085,6 @@ mod tests {
         let validator = app
             .get_first_validator_signing_account("inj".to_string(), 1.2)
             .unwrap();
-        let validator_private_key = app.get_first_validator_private_key().unwrap();
         let sender = derive_evm_account(&validator);
         let recipient_one = derive_evm_account(
             &app.init_account(&[cosmwasm_std::Coin::new(1u128, "inj")])
@@ -773,33 +1099,33 @@ mod tests {
         let gas_limit = 21_000u64;
         let first_value = 111u64;
         let second_value = 222u64;
-        let chain_id = evm_chain_id(&evm);
 
         fund_evm_account(&bank, &funder, &sender.inj_address, initial_sender_balance);
 
-        let first_tx = build_legacy_signed_raw_tx(
-            &validator_private_key,
-            chain_id,
-            0,
-            gas_price,
-            gas_limit,
-            parse_evm_address(&recipient_one.eth_address),
-            first_value,
-            &[],
-        );
-        let second_tx = build_legacy_signed_raw_tx(
-            &validator_private_key,
-            chain_id,
-            1,
-            gas_price,
-            gas_limit,
-            parse_evm_address(&recipient_two.eth_address),
-            second_value,
-            &[],
-        );
-
         let response = evm
-            .execute_raw_ethereum_txs(&[first_tx, second_tx])
+            .execute_legacy_txs(
+                &validator,
+                &[
+                    EvmLegacyTx {
+                        nonce: 0,
+                        gas_price: u128::from(gas_price),
+                        gas_limit,
+                        to: Some(recipient_one.eth_address.clone()),
+                        value: u128::from(first_value),
+                        data: Vec::new(),
+                        chain_id: None,
+                    },
+                    EvmLegacyTx {
+                        nonce: 1,
+                        gas_price: u128::from(gas_price),
+                        gas_limit,
+                        to: Some(recipient_two.eth_address.clone()),
+                        value: u128::from(second_value),
+                        data: Vec::new(),
+                        chain_id: None,
+                    },
+                ],
+            )
             .unwrap();
         assert_eq!(response.responses.len(), 2);
         assert!(response.responses.iter().all(|res| res.vm_error.is_empty()));
@@ -832,5 +1158,110 @@ mod tests {
             })
             .unwrap();
         assert_eq!(recipient_two_after.balance, second_value.to_string());
+    }
+
+    #[test]
+    fn execute_access_list_tx_integration() {
+        let app = InjectiveTestApp::new();
+        let bank = Bank::new(&app);
+        let evm = Evm::new(&app);
+        let funder = app
+            .init_account(&[cosmwasm_std::Coin::new(5_000_000_000u128, "inj")])
+            .unwrap();
+        let signer = app
+            .get_first_validator_signing_account("inj".to_string(), 1.2)
+            .unwrap();
+        let sender = derive_evm_account(&signer);
+        let recipient = derive_evm_account(
+            &app.init_account(&[cosmwasm_std::Coin::new(1u128, "inj")])
+                .unwrap(),
+        );
+
+        fund_evm_account(&bank, &funder, &sender.inj_address, 1_000_000_000u128);
+
+        let response = evm
+            .execute_access_list_tx(
+                &signer,
+                &EvmAccessListTx {
+                    nonce: 0,
+                    gas_price: 2_500,
+                    gas_limit: 21_000,
+                    to: Some(recipient.eth_address.clone()),
+                    value: 333,
+                    data: Vec::new(),
+                    access_list: Vec::new(),
+                    chain_id: None,
+                },
+            )
+            .unwrap();
+        assert!(response.data.vm_error.is_empty());
+        assert!(!response.data.hash.is_empty());
+
+        let sender_after = evm
+            .query_account(&QueryAccountRequest {
+                address: sender.eth_address,
+            })
+            .unwrap();
+        assert_eq!(sender_after.nonce, 1);
+
+        let recipient_after = evm
+            .query_balance(&QueryBalanceRequest {
+                address: recipient.eth_address,
+            })
+            .unwrap();
+        assert_eq!(recipient_after.balance, "333");
+    }
+
+    #[test]
+    fn execute_dynamic_fee_tx_integration() {
+        let app = InjectiveTestApp::new();
+        let bank = Bank::new(&app);
+        let evm = Evm::new(&app);
+        let funder = app
+            .init_account(&[cosmwasm_std::Coin::new(5_000_000_000u128, "inj")])
+            .unwrap();
+        let signer = app
+            .get_first_validator_signing_account("inj".to_string(), 1.2)
+            .unwrap();
+        let sender = derive_evm_account(&signer);
+        let recipient = derive_evm_account(
+            &app.init_account(&[cosmwasm_std::Coin::new(1u128, "inj")])
+                .unwrap(),
+        );
+
+        fund_evm_account(&bank, &funder, &sender.inj_address, 1_000_000_000u128);
+
+        let response = evm
+            .execute_dynamic_fee_tx(
+                &signer,
+                &EvmDynamicFeeTx {
+                    nonce: 0,
+                    gas_tip_cap: 2_500,
+                    gas_fee_cap: 2_500,
+                    gas_limit: 21_000,
+                    to: Some(recipient.eth_address.clone()),
+                    value: 444,
+                    data: Vec::new(),
+                    access_list: Vec::new(),
+                    chain_id: None,
+                },
+            )
+            .unwrap();
+        assert!(response.data.vm_error.is_empty());
+        assert!(!response.data.hash.is_empty());
+
+        let sender_after = evm
+            .query_account(&QueryAccountRequest {
+                address: sender.eth_address,
+            })
+            .unwrap();
+        assert_eq!(sender_after.nonce, 1);
+
+        let recipient_after = evm
+            .query_balance(&QueryBalanceRequest {
+                address: recipient.eth_address,
+            })
+            .unwrap();
+        assert_eq!(recipient_after.balance, "444");
     }
 }

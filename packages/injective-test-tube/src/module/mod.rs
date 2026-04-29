@@ -1,6 +1,7 @@
 mod auction;
 mod authz;
 mod bank;
+mod erc20;
 mod evm;
 mod exchange;
 mod gov;
@@ -18,7 +19,11 @@ pub use test_tube_inj::module::Module;
 pub use auction::Auction;
 pub use authz::Authz;
 pub use bank::Bank;
-pub use evm::{Evm, EvmCall, EvmExecuteResponse, EvmQueryOptions};
+pub use erc20::Erc20;
+pub use evm::{
+    derive_evm_address, derive_injective_evm_address, Evm, EvmAccessListItem, EvmAccessListTx,
+    EvmCall, EvmDynamicFeeTx, EvmExecuteResponse, EvmLegacyTx, EvmQueryOptions,
+};
 pub use exchange::Exchange;
 pub use gov::Gov;
 pub use insurance::Insurance;

@@ -1794,7 +1794,6 @@ dependencies = [
 name = "injective-test-tube"
 version = "1.19.0"
 dependencies = [
- "base64 0.21.7",
  "bindgen",
  "cosmrs",
  "cosmwasm-std 3.0.2",
@@ -3183,7 +3182,7 @@ dependencies = [
 
 [[package]]
 name = "test-tube-inj"
-version = "2.0.10-1"
+version = "2.0.10-2"
 dependencies = [
  "base64 0.21.7",
  "cosmrs",
