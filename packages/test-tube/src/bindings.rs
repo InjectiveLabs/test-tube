@@ -215,6 +215,13 @@ extern "C" {
     pub fn InitAccount(envId: GoUint64, coinsJson: GoString) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
+    pub fn InitAccountWithDerivation(
+        envId: GoUint64,
+        coinsJson: GoString,
+        derivationMode: GoInt32,
+    ) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
     pub fn InitAccountDecimals(
         envId: GoUint64,
         coinsJson: GoString,
@@ -222,7 +229,21 @@ extern "C" {
     ) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
+    pub fn InitAccountDecimalsWithDerivation(
+        envId: GoUint64,
+        coinsJson: GoString,
+        decimalsJson: GoString,
+        derivationMode: GoInt32,
+    ) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
     pub fn FinalizeBlock(envId: GoUint64, tx: GoString) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    pub fn FinalizeBlockEvm(
+        envId: GoUint64,
+        base64RawEthTxsJson: GoString,
+    ) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
     pub fn IncreaseTime(envId: GoUint64, seconds: GoInt64);

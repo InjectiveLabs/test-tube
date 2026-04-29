@@ -10,23 +10,33 @@ import (
 	"sync"
 	"time"
 
+	sdkmath "cosmossdk.io/math"
+	evmtypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/evm/types"
 	"github.com/InjectiveLabs/test-tube/injective-test-tube/result"
 	"github.com/InjectiveLabs/test-tube/injective-test-tube/testenv"
 	abci "github.com/cometbft/cometbft/abci/types"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/gogoproto/proto"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
+	injethsecp256k1 "github.com/InjectiveLabs/injective-core/injective-chain/crypto/ethsecp256k1"
 )
 
 var (
 	envCounter  uint64 = 0
 	envRegister        = sync.Map{}
 	mu          sync.Mutex
+)
+
+const (
+	addressDerivationCosmos       int32 = 0
+	addressDerivationInjectiveEvm int32 = 1
 )
 
 //export InitTestEnv
@@ -88,6 +98,15 @@ func CleanUp(envId uint64) {
 
 //export InitAccount
 func InitAccount(envId uint64, coinsJson string) *C.char {
+	return initAccountWithDerivation(envId, coinsJson, addressDerivationCosmos)
+}
+
+//export InitAccountWithDerivation
+func InitAccountWithDerivation(envId uint64, coinsJson string, derivationMode int32) *C.char {
+	return initAccountWithDerivation(envId, coinsJson, derivationMode)
+}
+
+func initAccountWithDerivation(envId uint64, coinsJson string, derivationMode int32) *C.char {
 	env := loadEnv(envId)
 	var coins sdk.Coins
 
@@ -96,22 +115,9 @@ func InitAccount(envId uint64, coinsJson string) *C.char {
 	}
 
 	priv := secp256k1.GenPrivKey()
-	accAddr := sdk.AccAddress(priv.PubKey().Address())
+	accAddr := addressFromPrivKey(priv, derivationMode)
 	for _, coin := range coins {
-		// create denom if not exist
-		_, hasDenomMetaData := env.App.BankKeeper.GetDenomMetaData(env.Ctx, coin.Denom)
-		if !hasDenomMetaData {
-			denomMetaData := banktypes.Metadata{
-				DenomUnits: []*banktypes.DenomUnit{{
-					Denom:    coin.Denom,
-					Exponent: 0,
-				}},
-				Base: coin.Denom,
-			}
-
-			env.App.BankKeeper.SetDenomMetaData(env.Ctx, denomMetaData)
-		}
-
+		ensureDenomMetadata(env, coin.Denom, 0)
 	}
 
 	err := env.FundAccount(env.Ctx, env.App.BankKeeper, accAddr, coins)
@@ -128,6 +134,15 @@ func InitAccount(envId uint64, coinsJson string) *C.char {
 
 //export InitAccountDecimals
 func InitAccountDecimals(envId uint64, coinsJson string, decimalsJson string) *C.char {
+	return initAccountDecimalsWithDerivation(envId, coinsJson, decimalsJson, addressDerivationCosmos)
+}
+
+//export InitAccountDecimalsWithDerivation
+func InitAccountDecimalsWithDerivation(envId uint64, coinsJson string, decimalsJson string, derivationMode int32) *C.char {
+	return initAccountDecimalsWithDerivation(envId, coinsJson, decimalsJson, derivationMode)
+}
+
+func initAccountDecimalsWithDerivation(envId uint64, coinsJson string, decimalsJson string, derivationMode int32) *C.char {
 	env := loadEnv(envId)
 	var coins sdk.Coins
 
@@ -145,25 +160,9 @@ func InitAccountDecimals(envId uint64, coinsJson string, decimalsJson string) *C
 	}
 
 	priv := secp256k1.GenPrivKey()
-	accAddr := sdk.AccAddress(priv.PubKey().Address())
+	accAddr := addressFromPrivKey(priv, derivationMode)
 	for i, coin := range coins {
-		// create denom if not exist
-		_, hasDenomMetaData := env.App.BankKeeper.GetDenomMetaData(env.Ctx, coin.Denom)
-		if !hasDenomMetaData {
-			denomMetaData := banktypes.Metadata{
-				DenomUnits: []*banktypes.DenomUnit{
-					{
-						Denom:    coin.Denom,
-						Exponent: 0,
-					},
-				},
-				Base:     coin.Denom,
-				Decimals: decimals[i],
-			}
-
-			env.App.BankKeeper.SetDenomMetaData(env.Ctx, denomMetaData)
-		}
-
+		ensureDenomMetadata(env, coin.Denom, decimals[i])
 	}
 
 	err := env.FundAccount(env.Ctx, env.App.BankKeeper, accAddr, coins)
@@ -178,6 +177,36 @@ func InitAccountDecimals(envId uint64, coinsJson string, decimalsJson string) *C
 	return C.CString(base64Priv)
 }
 
+func addressFromPrivKey(priv *secp256k1.PrivKey, derivationMode int32) sdk.AccAddress {
+	switch derivationMode {
+	case addressDerivationCosmos:
+		return sdk.AccAddress(priv.PubKey().Address())
+	case addressDerivationInjectiveEvm:
+		pubKey := &injethsecp256k1.PubKey{Key: priv.PubKey().Bytes()}
+		return sdk.AccAddress(pubKey.Address().Bytes())
+	default:
+		panic(fmt.Sprintf("unsupported address derivation mode: %d", derivationMode))
+	}
+}
+
+func ensureDenomMetadata(env testenv.TestEnv, denom string, decimals uint32) {
+	_, hasDenomMetaData := env.App.BankKeeper.GetDenomMetaData(env.Ctx, denom)
+	if hasDenomMetaData {
+		return
+	}
+
+	denomMetaData := banktypes.Metadata{
+		DenomUnits: []*banktypes.DenomUnit{{
+			Denom:    denom,
+			Exponent: 0,
+		}},
+		Base:     denom,
+		Decimals: decimals,
+	}
+
+	env.App.BankKeeper.SetDenomMetaData(env.Ctx, denomMetaData)
+}
+
 //export IncreaseTime
 func IncreaseTime(envId uint64, seconds uint64) {
 	internalFinalizeBlock(envId, "", seconds)
@@ -189,15 +218,19 @@ func FinalizeBlock(envId uint64, base64ReqDeliverTx string) *C.char {
 }
 
 func internalFinalizeBlock(envId uint64, base64ReqDeliverTx string, seconds uint64) *C.char {
-	env := loadEnv(envId)
-	// Temp fix for concurrency issue
-	mu.Lock()
-	defer mu.Unlock()
-
 	reqDeliverTxBytes, err := base64.StdEncoding.DecodeString(base64ReqDeliverTx)
 	if err != nil {
 		panic(err)
 	}
+
+	return internalFinalizeBlockBytes(envId, reqDeliverTxBytes, seconds)
+}
+
+func internalFinalizeBlockBytes(envId uint64, reqDeliverTxBytes []byte, seconds uint64) *C.char {
+	env := loadEnv(envId)
+	// Temp fix for concurrency issue
+	mu.Lock()
+	defer mu.Unlock()
 
 	newBlockTime := env.Ctx.BlockTime().Add(time.Duration(seconds) * time.Second)
 	newCtx := env.Ctx.WithBlockTime(newBlockTime).WithBlockHeight(env.Ctx.BlockHeight() + 1)
@@ -223,6 +256,75 @@ func internalFinalizeBlock(envId uint64, base64ReqDeliverTx string, seconds uint
 
 	return encodeBytesResultBytes(bz)
 
+}
+
+//export FinalizeBlockEvm
+func FinalizeBlockEvm(envId uint64, base64RawEthTxsJson string) *C.char {
+	var base64RawEthTxs []string
+	if err := json.Unmarshal([]byte(base64RawEthTxsJson), &base64RawEthTxs); err != nil {
+		return encodeErrToResultBytes(result.ExecuteError, err)
+	}
+
+	if len(base64RawEthTxs) == 0 {
+		return encodeErrToResultBytes(result.ExecuteError, errors.New("at least one raw ethereum tx is required"))
+	}
+
+	env := loadEnv(envId)
+	txBuilder, ok := env.App.TxConfig().NewTxBuilder().(authtx.ExtensionOptionsTxBuilder)
+	if !ok {
+		return encodeErrToResultBytes(result.ExecuteError, errors.New("tx builder does not support extension options"))
+	}
+
+	option, err := codectypes.NewAnyWithValue(&evmtypes.ExtensionOptionsEthereumTx{})
+	if err != nil {
+		return encodeErrToResultBytes(result.ExecuteError, err)
+	}
+
+	msgs := make([]sdk.Msg, 0, len(base64RawEthTxs))
+	totalFee := sdkmath.ZeroInt()
+	var totalGas uint64
+
+	for _, base64RawEthTx := range base64RawEthTxs {
+		rawEthTx, err := base64.StdEncoding.DecodeString(base64RawEthTx)
+		if err != nil {
+			return encodeErrToResultBytes(result.ExecuteError, err)
+		}
+
+		tx := &ethtypes.Transaction{}
+		if err := tx.UnmarshalBinary(rawEthTx); err != nil {
+			return encodeErrToResultBytes(result.ExecuteError, err)
+		}
+
+		msg := &evmtypes.MsgEthereumTx{}
+		if err := msg.FromSignedEthereumTx(tx, ethtypes.LatestSignerForChainID(tx.ChainId())); err != nil {
+			return encodeErrToResultBytes(result.ExecuteError, err)
+		}
+
+		msgs = append(msgs, msg)
+		totalFee = totalFee.Add(sdkmath.NewIntFromBigInt(msg.GetFee()))
+		totalGas += msg.GetGas()
+	}
+
+	txBuilder.SetExtensionOptions(option)
+	if err := txBuilder.SetMsgs(msgs...); err != nil {
+		return encodeErrToResultBytes(result.ExecuteError, err)
+	}
+
+	fees := sdk.NewCoins()
+	if totalFee.Sign() > 0 {
+		evmDenom := env.App.EvmKeeper.GetParams(env.Ctx).EvmDenom
+		fees = sdk.NewCoins(sdk.NewCoin(evmDenom, totalFee))
+	}
+
+	txBuilder.SetFeeAmount(fees)
+	txBuilder.SetGasLimit(totalGas)
+
+	txBytes, err := env.App.TxConfig().TxEncoder()(txBuilder.GetTx())
+	if err != nil {
+		return encodeErrToResultBytes(result.ExecuteError, err)
+	}
+
+	return internalFinalizeBlockBytes(envId, txBytes, 1)
 }
 
 //export Query

@@ -1,6 +1,7 @@
+use cosmrs::proto::tendermint::v0_38::abci::ResponseFinalizeBlock;
 use cosmwasm_std::Coin;
 use prost::Message;
-use test_tube_inj::account::SigningAccount;
+use test_tube_inj::account::{AddressDerivation, SigningAccount};
 use test_tube_inj::runner::result::{RunnerExecuteResult, RunnerResult};
 use test_tube_inj::runner::Runner;
 use test_tube_inj::BaseApp;
@@ -48,6 +49,14 @@ impl InjectiveTestApp {
         self.inner.get_block_height()
     }
 
+    pub fn get_account_sequence(&self, address: &str) -> u64 {
+        self.inner.get_account_sequence(address)
+    }
+
+    pub fn get_account_number(&self, address: &str) -> u64 {
+        self.inner.get_account_number(address)
+    }
+
     /// Get the first validator address
     pub fn get_first_validator_address(&self) -> RunnerResult<String> {
         self.inner.get_first_validator_address()
@@ -79,6 +88,16 @@ impl InjectiveTestApp {
         self.inner.init_account(coins)
     }
 
+    /// Initialize account with initial balance of any coins using an explicit
+    /// address derivation mode.
+    pub fn init_account_with_derivation(
+        &self,
+        coins: &[Coin],
+        derivation: AddressDerivation,
+    ) -> RunnerResult<SigningAccount> {
+        self.inner.init_account_with_derivation(coins, derivation)
+    }
+
     /// Initialize account with initial balance of any coins, defining decimals if not created.
     /// This function mints new coins and send to newly created account
     pub fn init_account_decimals(
@@ -87,6 +106,18 @@ impl InjectiveTestApp {
         decimals: &[u32],
     ) -> RunnerResult<SigningAccount> {
         self.inner.init_account_decimals(coins, decimals)
+    }
+
+    /// Initialize account with initial balance of any coins, defining decimals
+    /// if not created, using an explicit address derivation mode.
+    pub fn init_account_decimals_with_derivation(
+        &self,
+        coins: &[Coin],
+        decimals: &[u32],
+        derivation: AddressDerivation,
+    ) -> RunnerResult<SigningAccount> {
+        self.inner
+            .init_account_decimals_with_derivation(coins, decimals, derivation)
     }
 
     /// Convenience function to create multiple accounts with the same
@@ -114,6 +145,13 @@ impl InjectiveTestApp {
         type_url: &str,
     ) -> RunnerResult<P> {
         self.inner.get_param_set(subspace, type_url)
+    }
+
+    pub fn execute_signed_evm_txs_raw_response(
+        &self,
+        raw_txs: &[Vec<u8>],
+    ) -> RunnerResult<ResponseFinalizeBlock> {
+        self.inner.execute_signed_evm_txs_raw_response(raw_txs)
     }
 }
 
@@ -154,7 +192,9 @@ impl<'a> Runner<'a> for InjectiveTestApp {
 mod tests {
     use cosmwasm_std::{coins, Coin, Uint256};
     use injective_std::types::{
-        cosmos::bank::v1beta1::QueryAllBalancesRequest,
+        cosmos::bank::v1beta1::{
+            QueryAllBalancesRequest, QueryBalanceRequest, QueryDenomMetadataRequest,
+        },
         injective::tokenfactory::v1beta1::{
             MsgCreateDenom, MsgCreateDenomResponse, QueryParamsRequest, QueryParamsResponse,
         },
@@ -162,8 +202,8 @@ mod tests {
 
     use crate::module::Wasm;
     use crate::runner::app::InjectiveTestApp;
-    use crate::Bank;
-    use test_tube_inj::account::{Account, FeeSetting};
+    use crate::{derive_evm_address, derive_injective_evm_address, Authz, Bank, Evm, EvmLegacyTx};
+    use test_tube_inj::account::{Account, AddressDerivation, FeeSetting};
     use test_tube_inj::module::Module;
     use test_tube_inj::runner::*;
     use test_tube_inj::ExecuteResponse;
@@ -451,6 +491,234 @@ mod tests {
 
         assert_eq!(admin_list.admins, new_admins);
         assert!(admin_list.mutable);
+    }
+
+    #[test]
+    fn test_injective_evm_identity_bank_authz_wasm_and_evm() {
+        use cw1_whitelist::msg::{AdminListResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
+        use injective_std::shim::Any;
+        use injective_std::types::{
+            cosmos::{
+                authz::v1beta1::{
+                    GenericAuthorization, Grant, MsgGrant, QueryGranteeGrantsRequest,
+                },
+                bank::v1beta1::{MsgSend, QueryBalanceRequest},
+                base::v1beta1::Coin as BaseCoin,
+            },
+            injective::evm::v1::QueryAccountRequest,
+        };
+        use prost::Message as _;
+
+        let app = InjectiveTestApp::default();
+        let bank = Bank::new(&app);
+        let authz = Authz::new(&app);
+        let wasm = Wasm::new(&app);
+        let evm = Evm::new(&app);
+
+        let signer = app
+            .init_account_with_derivation(
+                &[
+                    Coin::new(1_000_000_000_000u128, "inj"),
+                    Coin::new(10u128, "usdc"),
+                ],
+                AddressDerivation::InjectiveEvm,
+            )
+            .unwrap();
+        let receiver = app.init_account(&[Coin::new(1u128, "inj")]).unwrap();
+        let new_admin = app.init_account(&[Coin::new(1u128, "inj")]).unwrap();
+
+        assert_eq!(signer.derivation(), AddressDerivation::InjectiveEvm);
+        assert_eq!(signer.address(), derive_injective_evm_address(&signer));
+        assert!(app.get_account_number(&signer.address()) > 0);
+        assert_eq!(app.get_account_sequence(&signer.address()), 0);
+
+        let bank_send_msg = MsgSend {
+            from_address: signer.address(),
+            to_address: receiver.address(),
+            amount: vec![BaseCoin {
+                amount: 9u128.to_string(),
+                denom: "inj".to_string(),
+            }],
+        };
+
+        let gas_info = app
+            .simulate_tx(
+                [cosmrs::Any {
+                    type_url: "/cosmos.bank.v1beta1.MsgSend".to_string(),
+                    value: bank_send_msg.encode_to_vec(),
+                }],
+                &signer,
+            )
+            .unwrap();
+        assert!(gas_info.gas_used > 0);
+
+        bank.send(bank_send_msg, &signer).unwrap();
+        assert_eq!(app.get_account_sequence(&signer.address()), 1);
+
+        let receiver_balance = bank
+            .query_balance(&QueryBalanceRequest {
+                address: receiver.address(),
+                denom: "inj".to_string(),
+            })
+            .unwrap()
+            .balance
+            .unwrap()
+            .amount
+            .parse::<u128>()
+            .unwrap();
+        assert_eq!(receiver_balance, 10);
+
+        let generic_auth = GenericAuthorization {
+            msg: "/cosmos.bank.v1beta1.MsgSend".to_string(),
+        };
+        let mut authorization_bytes = Vec::new();
+        generic_auth.encode(&mut authorization_bytes).unwrap();
+
+        authz
+            .grant(
+                MsgGrant {
+                    granter: signer.address(),
+                    grantee: receiver.address(),
+                    grant: Some(Grant {
+                        authorization: Some(Any {
+                            type_url: "/cosmos.authz.v1beta1.GenericAuthorization".to_string(),
+                            value: authorization_bytes.clone(),
+                        }),
+                        expiration: None,
+                    }),
+                },
+                &signer,
+            )
+            .unwrap();
+
+        let grants = authz
+            .query_grantee_grants(&QueryGranteeGrantsRequest {
+                grantee: receiver.address(),
+                pagination: None,
+            })
+            .unwrap();
+        assert_eq!(grants.grants.len(), 1);
+        assert_eq!(grants.grants[0].granter, signer.address());
+        assert_eq!(grants.grants[0].grantee, receiver.address());
+
+        let wasm_byte_code = std::fs::read("./test_artifacts/cw1_whitelist.wasm").unwrap();
+        let code_id = wasm
+            .store_code(&wasm_byte_code, None, &signer)
+            .unwrap()
+            .data
+            .code_id;
+        let contract_addr = wasm
+            .instantiate(
+                code_id,
+                &InstantiateMsg {
+                    admins: vec![signer.address()],
+                    mutable: true,
+                },
+                Some(&signer.address()),
+                Some("InjectiveEvm identity"),
+                &[],
+                &signer,
+            )
+            .unwrap()
+            .data
+            .address;
+        let admin_list = wasm
+            .query::<QueryMsg, AdminListResponse>(&contract_addr, &QueryMsg::AdminList {})
+            .unwrap();
+        assert_eq!(admin_list.admins, vec![signer.address()]);
+
+        wasm.execute::<ExecuteMsg>(
+            &contract_addr,
+            &ExecuteMsg::UpdateAdmins {
+                admins: vec![new_admin.address()],
+            },
+            &[],
+            &signer,
+        )
+        .unwrap();
+
+        let updated_admins = wasm
+            .query::<QueryMsg, AdminListResponse>(&contract_addr, &QueryMsg::AdminList {})
+            .unwrap();
+        assert_eq!(updated_admins.admins, vec![new_admin.address()]);
+
+        let signer_evm_address = derive_evm_address(&signer);
+        let signer_evm_account = evm
+            .query_account(&QueryAccountRequest {
+                address: signer_evm_address.clone(),
+            })
+            .unwrap();
+        assert_eq!(
+            signer_evm_account.nonce,
+            app.get_account_sequence(&signer.address())
+        );
+        assert!(!signer_evm_account.balance.is_empty());
+
+        let evm_recipient = app.init_account(&[Coin::new(1u128, "inj")]).unwrap();
+        let evm_transfer = evm
+            .execute_legacy_tx(
+                &signer,
+                &EvmLegacyTx {
+                    nonce: signer_evm_account.nonce,
+                    gas_price: 2_500u128,
+                    gas_limit: 21_000,
+                    to: Some(derive_evm_address(&evm_recipient)),
+                    value: 123u128,
+                    data: Vec::new(),
+                    chain_id: None,
+                },
+            )
+            .unwrap();
+        assert!(evm_transfer.data.vm_error.is_empty());
+
+        let signer_evm_account_after = evm
+            .query_account(&QueryAccountRequest {
+                address: signer_evm_address,
+            })
+            .unwrap();
+        assert_eq!(signer_evm_account_after.nonce, signer_evm_account.nonce + 1);
+    }
+
+    #[test]
+    fn test_init_account_decimals_with_injective_evm_derivation() {
+        let app = InjectiveTestApp::default();
+        let bank = Bank::new(&app);
+
+        let signer = app
+            .init_account_decimals_with_derivation(
+                &[
+                    Coin::new(123_000_000u128, "usdc"),
+                    Coin::new(456_000_000_000_000_000u128, "inj"),
+                ],
+                &[6u32, 18u32],
+                AddressDerivation::InjectiveEvm,
+            )
+            .unwrap();
+
+        assert_eq!(signer.derivation(), AddressDerivation::InjectiveEvm);
+        assert_eq!(signer.address(), derive_injective_evm_address(&signer));
+        assert!(app.get_account_number(&signer.address()) > 0);
+
+        let usdc_balance = bank
+            .query_balance(&QueryBalanceRequest {
+                address: signer.address(),
+                denom: "usdc".to_string(),
+            })
+            .unwrap()
+            .balance
+            .unwrap()
+            .amount;
+        assert_eq!(usdc_balance, "123000000");
+
+        let usdc_decimals = bank
+            .query_denom_metadata(&QueryDenomMetadataRequest {
+                denom: "usdc".to_string(),
+            })
+            .unwrap()
+            .metadata
+            .unwrap()
+            .decimals;
+        assert_eq!(usdc_decimals, 6);
     }
 
     #[test]

@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.19.0 - 2026-04-29
+
+### Added
+
+- Added `Evm` module support for:
+  - account, balance, storage, code, and params queries
+  - `eth_call` and `estimate_gas`
+  - execution of raw signed Ethereum transactions through the canonical Injective EVM path
+  - Rust-side signing helpers for legacy, access-list, and dynamic-fee Ethereum transactions
+- Added `Erc20` module queries for params and token-pair lookups
+
+### Changed
+
+- Bumped `injective-core@v1.19.0`
+- Bumped `injective-std@=1.19.0`
+- Bumped `injective-cosmwasm@0.3.6`
+- Bumped `cosmwasm-std@3.0.5`
+- Bumped `test-tube-inj@2.0.10`
+
+### Fixed
+
+- Updated oracle params compatibility for `injective-std@1.19.0`
+
 ## 1.18.0 - 2026-02-23
 
 ### Changed

@@ -1,6 +1,6 @@
 extern crate core;
 
-use std::{env, path::PathBuf, process::Command};
+use std::{env, fs, path::Path, path::PathBuf, process::Command};
 
 fn main() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -19,7 +19,7 @@ fn main() {
         out_dir.join(format!("lib{}.h", lib_name))
     };
     // rerun when go code is updated
-    println!("cargo:rerun-if-changed=./libinjectivetesttube");
+    emit_rerun_if_changed(&manifest_dir.join("libinjectivetesttube"));
 
     let lib_filename = if cfg!(target_os = "macos") {
         format!("lib{}.{}", lib_name, "dylib")
@@ -39,11 +39,7 @@ fn main() {
     }
 
     let out_dir_lib_path = out_dir.join(lib_filename);
-    if std::fs::metadata(&out_dir_lib_path).is_err()
-        || env::var("INJECTIVE_TUBE_DEV") == Ok("1".to_string())
-    {
-        build_libinjectivetesttube(out_dir_lib_path);
-    }
+    build_libinjectivetesttube(out_dir_lib_path);
 
     // copy built lib to target dir if debug build
     if env::var("PROFILE").unwrap() == "debug" {
@@ -96,6 +92,20 @@ fn main() {
         .expect("Couldn't write bindings!");
 
     // panic!("failed to build go code");
+}
+
+fn emit_rerun_if_changed(path: &Path) {
+    if path.is_file() {
+        println!("cargo:rerun-if-changed={}", path.display());
+        return;
+    }
+
+    if path.is_dir() {
+        for entry in fs::read_dir(path).unwrap() {
+            let entry = entry.unwrap();
+            emit_rerun_if_changed(&entry.path());
+        }
+    }
 }
 
 fn build_libinjectivetesttube(out: PathBuf) {

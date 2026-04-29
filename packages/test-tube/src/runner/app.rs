@@ -5,15 +5,18 @@ use base64::Engine as _;
 use cosmrs::crypto::secp256k1::SigningKey;
 use cosmrs::proto::tendermint::v0_38::abci::ResponseFinalizeBlock;
 use cosmrs::tx;
-use cosmrs::tx::{Fee, SignerInfo};
+use cosmrs::tx::{Fee, ModeInfo, SignMode, SignerInfo, SignerPublicKey};
 use cosmwasm_std::{Coin, Timestamp};
+use k256::ecdsa::SigningKey as K256SigningKey;
 use prost::Message;
+use sha3::{Digest, Keccak256};
 
-use crate::account::{Account, FeeSetting, SigningAccount};
+use crate::account::{Account, AddressDerivation, FeeSetting, SigningAccount};
 use crate::bindings::{
-    AccountNumber, AccountSequence, CleanUp, FinalizeBlock, GetBlockHeight, GetBlockTime,
-    GetParamSet, GetValidatorAddress, GetValidatorPrivateKey, IncreaseTime, InitAccount,
-    InitAccountDecimals, InitTestEnv, Query, Simulate,
+    AccountNumber, AccountSequence, CleanUp, FinalizeBlock, FinalizeBlockEvm, GetBlockHeight,
+    GetBlockTime, GetParamSet, GetValidatorAddress, GetValidatorPrivateKey, IncreaseTime,
+    InitAccount, InitAccountDecimals, InitAccountDecimalsWithDerivation, InitAccountWithDerivation,
+    InitTestEnv, Query, Simulate,
 };
 use crate::redefine_as_go_string;
 use crate::runner::error::{DecodeError, EncodeError, RunnerError};
@@ -22,6 +25,88 @@ use crate::runner::result::{RunnerExecuteResult, RunnerResult};
 use crate::runner::Runner;
 
 pub const INJECTIVE_MIN_GAS_PRICE: u128 = 2_500;
+const INJECTIVE_ETHSECP256K1_TYPE_URL: &str = "/injective.crypto.v1beta1.ethsecp256k1.PubKey";
+
+#[derive(Clone, PartialEq, Message)]
+struct InjectiveEthSecp256k1PubKey {
+    #[prost(bytes = "vec", tag = "1")]
+    key: Vec<u8>,
+}
+
+fn decode_signing_key(base64_priv: &str) -> RunnerResult<([u8; 32], SigningKey)> {
+    let secp256k1_priv = BASE64_STANDARD
+        .decode(base64_priv)
+        .map_err(DecodeError::Base64DecodeError)?;
+
+    let private_key_bytes: [u8; 32] =
+        secp256k1_priv
+            .as_slice()
+            .try_into()
+            .map_err(|_| DecodeError::SigningKeyDecodeError {
+                msg: "expected 32-byte secp256k1 private key".to_string(),
+            })?;
+
+    let signing_key = SigningKey::from_slice(&private_key_bytes).map_err(|e| {
+        let msg = e.to_string();
+        DecodeError::SigningKeyDecodeError { msg }
+    })?;
+
+    Ok((private_key_bytes, signing_key))
+}
+
+fn build_injective_ethsecp256k1_public_key_any(signer: &SigningAccount) -> cosmrs::Any {
+    cosmrs::Any {
+        type_url: INJECTIVE_ETHSECP256K1_TYPE_URL.to_string(),
+        value: InjectiveEthSecp256k1PubKey {
+            key: signer.public_key().to_bytes(),
+        }
+        .encode_to_vec(),
+    }
+}
+
+fn build_signer_info(signer: &SigningAccount, sequence: u64) -> SignerInfo {
+    match signer.derivation() {
+        AddressDerivation::Cosmos => SignerInfo::single_direct(Some(signer.public_key()), sequence),
+        AddressDerivation::InjectiveEvm => SignerInfo {
+            public_key: Some(SignerPublicKey::Any(
+                build_injective_ethsecp256k1_public_key_any(signer),
+            )),
+            mode_info: ModeInfo::single(SignMode::Direct),
+            sequence,
+        },
+    }
+}
+
+fn sign_tx_raw(sign_doc: tx::SignDoc, signer: &SigningAccount) -> RunnerResult<tx::Raw> {
+    match signer.derivation() {
+        AddressDerivation::Cosmos => sign_doc.sign(signer.signing_key()).map_err(|err| {
+            RunnerError::GenericError(format!("failed to sign Cosmos transaction: {err}"))
+        }),
+        AddressDerivation::InjectiveEvm => {
+            let signing_key =
+                K256SigningKey::from_slice(signer.private_key_bytes()).map_err(|err| {
+                    RunnerError::GenericError(format!("invalid secp256k1 private key: {err}"))
+                })?;
+
+            let sign_doc_bytes = sign_doc.clone().into_bytes().map_err(RunnerError::from)?;
+            let mut digest = Keccak256::new();
+            digest.update(sign_doc_bytes);
+
+            let (signature, _) = signing_key.sign_digest_recoverable(digest).map_err(|err| {
+                RunnerError::GenericError(format!(
+                    "failed to sign Injective ethsecp256k1 transaction: {err}"
+                ))
+            })?;
+
+            Ok(cosmrs::proto::cosmos::tx::v1beta1::TxRaw {
+                body_bytes: sign_doc.body_bytes,
+                auth_info_bytes: sign_doc.auth_info_bytes,
+                signatures: vec![signature.to_bytes().to_vec()],
+            }
+            .into())
+        }
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub struct BaseApp {
@@ -96,15 +181,12 @@ impl BaseApp {
         .map_err(DecodeError::Utf8Error)?
         .to_string();
 
-        let secp256k1_priv = BASE64_STANDARD
-            .decode(pkey)
-            .map_err(DecodeError::Base64DecodeError)?;
-
-        let signing_key = SigningKey::from_slice(&secp256k1_priv).unwrap();
+        let (private_key_bytes, signing_key) = decode_signing_key(&pkey)?;
 
         let validator = SigningAccount::new(
             self.address_prefix.clone(),
             signing_key,
+            private_key_bytes,
             FeeSetting::Auto {
                 gas_price: Coin::new(INJECTIVE_MIN_GAS_PRICE, denom),
                 gas_adjustment,
@@ -151,6 +233,17 @@ impl BaseApp {
         coins: &[Coin],
         decimals: &[u32],
     ) -> RunnerResult<SigningAccount> {
+        self.init_account_decimals_with_derivation(coins, decimals, AddressDerivation::Cosmos)
+    }
+
+    /// Initialize account with initial balance of any coins, defining decimals if not created,
+    /// using an explicit address derivation mode.
+    pub fn init_account_decimals_with_derivation(
+        &self,
+        coins: &[Coin],
+        decimals: &[u32],
+        derivation: AddressDerivation,
+    ) -> RunnerResult<SigningAccount> {
         let mut coins = coins.to_vec();
         let mut decimals = decimals.to_vec();
 
@@ -174,7 +267,17 @@ impl BaseApp {
         redefine_as_go_string!(empty_tx);
 
         let base64_priv = unsafe {
-            let addr = InitAccountDecimals(self.id, coins_json, decimals_json);
+            let addr = match derivation {
+                AddressDerivation::Cosmos => {
+                    InitAccountDecimals(self.id, coins_json, decimals_json)
+                }
+                AddressDerivation::InjectiveEvm => InitAccountDecimalsWithDerivation(
+                    self.id,
+                    coins_json,
+                    decimals_json,
+                    derivation as i32,
+                ),
+            };
             FinalizeBlock(self.id, empty_tx);
             CString::from_raw(addr)
         }
@@ -182,27 +285,21 @@ impl BaseApp {
         .map_err(DecodeError::Utf8Error)?
         .to_string();
 
-        let secp256k1_priv = BASE64_STANDARD
-            .decode(base64_priv)
-            .map_err(DecodeError::Base64DecodeError)?;
-
-        let signing_key = SigningKey::from_slice(&secp256k1_priv).map_err(|e| {
-            let msg = e.to_string();
-            DecodeError::SigningKeyDecodeError { msg }
-        })?;
-
-        Ok(SigningAccount::new(
-            self.address_prefix.clone(),
-            signing_key,
-            FeeSetting::Auto {
-                gas_price: Coin::new(INJECTIVE_MIN_GAS_PRICE, self.fee_denom.clone()),
-                gas_adjustment: self.default_gas_adjustment,
-            },
-        ))
+        self.build_signing_account_from_base64(base64_priv, derivation)
     }
     /// Initialize account with initial balance of any coins.
     /// This function mints new coins and send to newly created account
     pub fn init_account(&self, coins: &[Coin]) -> RunnerResult<SigningAccount> {
+        self.init_account_with_derivation(coins, AddressDerivation::Cosmos)
+    }
+
+    /// Initialize account with initial balance of any coins using an explicit
+    /// address derivation mode.
+    pub fn init_account_with_derivation(
+        &self,
+        coins: &[Coin],
+        derivation: AddressDerivation,
+    ) -> RunnerResult<SigningAccount> {
         let mut coins = coins.to_vec();
 
         // invalid coins if denom are unsorted
@@ -215,7 +312,12 @@ impl BaseApp {
         redefine_as_go_string!(empty_tx);
 
         let base64_priv = unsafe {
-            let addr = InitAccount(self.id, coins_json);
+            let addr = match derivation {
+                AddressDerivation::Cosmos => InitAccount(self.id, coins_json),
+                AddressDerivation::InjectiveEvm => {
+                    InitAccountWithDerivation(self.id, coins_json, derivation as i32)
+                }
+            };
             FinalizeBlock(self.id, empty_tx);
             CString::from_raw(addr)
         }
@@ -223,28 +325,31 @@ impl BaseApp {
         .map_err(DecodeError::Utf8Error)?
         .to_string();
 
-        let secp256k1_priv = BASE64_STANDARD
-            .decode(base64_priv)
-            .map_err(DecodeError::Base64DecodeError)?;
-
-        let signing_key = SigningKey::from_slice(&secp256k1_priv).map_err(|e| {
-            let msg = e.to_string();
-            DecodeError::SigningKeyDecodeError { msg }
-        })?;
-
-        Ok(SigningAccount::new(
-            self.address_prefix.clone(),
-            signing_key,
-            FeeSetting::Auto {
-                gas_price: Coin::new(INJECTIVE_MIN_GAS_PRICE, self.fee_denom.clone()),
-                gas_adjustment: self.default_gas_adjustment,
-            },
-        ))
+        self.build_signing_account_from_base64(base64_priv, derivation)
     }
     /// Convenience function to create multiple accounts with the same
     /// Initial coins balance
     pub fn init_accounts(&self, coins: &[Coin], count: u64) -> RunnerResult<Vec<SigningAccount>> {
         (0..count).map(|_| self.init_account(coins)).collect()
+    }
+
+    fn build_signing_account_from_base64(
+        &self,
+        base64_priv: String,
+        derivation: AddressDerivation,
+    ) -> RunnerResult<SigningAccount> {
+        let (private_key_bytes, signing_key) = decode_signing_key(&base64_priv)?;
+
+        Ok(SigningAccount::new_with_derivation(
+            self.address_prefix.clone(),
+            signing_key,
+            private_key_bytes,
+            derivation,
+            FeeSetting::Auto {
+                gas_price: Coin::new(INJECTIVE_MIN_GAS_PRICE, self.fee_denom.clone()),
+                gas_adjustment: self.default_gas_adjustment,
+            },
+        ))
     }
 
     fn create_signed_tx<I>(
@@ -264,7 +369,7 @@ impl BaseApp {
         let seq = unsafe { AccountSequence(self.id, addr) };
         let account_number = unsafe { AccountNumber(self.id, addr) };
 
-        let signer_info = SignerInfo::single_direct(Some(signer.public_key()), seq);
+        let signer_info = build_signer_info(signer, seq);
 
         let chain_id = self
             .chain_id
@@ -280,7 +385,7 @@ impl BaseApp {
                 }
             })?;
 
-        let tx_raw = sign_doc.sign(signer.signing_key()).unwrap();
+        let tx_raw = sign_tx_raw(sign_doc, signer)?;
 
         tx_raw
             .to_bytes()
@@ -366,6 +471,29 @@ impl BaseApp {
             let pset = RawResult::from_non_null_ptr(pset).into_result()?;
             let pset = P::decode(pset.as_slice()).map_err(DecodeError::ProtoDecodeError)?;
             Ok(pset)
+        }
+    }
+
+    pub fn execute_signed_evm_txs_raw_response(
+        &self,
+        raw_txs: &[Vec<u8>],
+    ) -> RunnerResult<ResponseFinalizeBlock> {
+        let base64_raw_txs = raw_txs
+            .iter()
+            .map(|raw_tx| BASE64_STANDARD.encode(raw_tx))
+            .collect::<Vec<_>>();
+
+        let base64_raw_txs_json =
+            serde_json::to_string(&base64_raw_txs).map_err(EncodeError::JsonEncodeError)?;
+        redefine_as_go_string!(base64_raw_txs_json);
+
+        unsafe {
+            let res = FinalizeBlockEvm(self.id, base64_raw_txs_json);
+            let res = RawResult::from_non_null_ptr(res).into_result()?;
+
+            ResponseFinalizeBlock::decode(res.as_slice())
+                .map_err(DecodeError::ProtoDecodeError)
+                .map_err(RunnerError::DecodeError)
         }
     }
 }
