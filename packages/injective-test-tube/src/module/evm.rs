@@ -9,13 +9,16 @@ use injective_std::types::injective::evm::v1::{
     QueryCodeResponse, QueryParamsRequest, QueryParamsResponse, QueryStorageRequest,
     QueryStorageResponse,
 };
-use k256::{ecdsa::SigningKey as K256SigningKey, elliptic_curve::sec1::ToEncodedPoint, PublicKey};
+use k256::ecdsa::SigningKey as K256SigningKey;
 use prost::Message;
 use rlp::RlpStream;
 use serde_json::{Map, Value};
 use sha3::{Digest, Keccak256};
 use test_tube_inj::{
-    account::Account,
+    account::{
+        derive_account_id, derive_evm_address_bytes as derive_account_evm_address_bytes, Account,
+        AddressDerivation,
+    },
     fn_query,
     module::Module,
     runner::{
@@ -287,21 +290,18 @@ pub fn derive_evm_address<A: Account>(account: &A) -> String {
 }
 
 pub fn derive_injective_evm_address<A: Account>(account: &A) -> String {
-    cosmrs::AccountId::new("inj", &derive_evm_address_bytes(account))
-        .expect("derived EVM bytes should form a valid Injective address")
-        .to_string()
+    derive_account_id(
+        &account.public_key(),
+        "inj",
+        AddressDerivation::InjectiveEvm,
+    )
+    .expect("derived EVM bytes should form a valid Injective address")
+    .to_string()
 }
 
 fn derive_evm_address_bytes<A: Account>(account: &A) -> [u8; 20] {
-    let pubkey_bytes = account.public_key().to_bytes();
-    let pubkey = PublicKey::from_sec1_bytes(&pubkey_bytes)
-        .expect("account should use a valid secp256k1 public key");
-    let uncompressed = pubkey.to_encoded_point(false);
-    let hash = Keccak256::digest(&uncompressed.as_bytes()[1..]);
-
-    hash[12..]
-        .try_into()
-        .expect("Keccak-derived EVM address should contain 20 bytes")
+    derive_account_evm_address_bytes(&account.public_key())
+        .expect("account should use a valid secp256k1 public key")
 }
 
 fn decode_hex_nibble(ch: u8) -> Result<u8, RunnerError> {

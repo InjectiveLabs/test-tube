@@ -20,7 +20,7 @@ rlp                = "0.5.2"
 serde              = "1.0.144"
 serde_json         = "1.0.85"
 sha3               = "0.10.8"
-test-tube-inj      = { version = "2.0.10-2", path = "../test-tube" }
+test-tube-inj      = { version = "2.0.10-3", path = "../test-tube" }
 
 [build-dependencies]
 bindgen = "0.60.1"

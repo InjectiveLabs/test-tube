@@ -10,27 +10,33 @@ import (
 	"sync"
 	"time"
 
+	sdkmath "cosmossdk.io/math"
+	evmtypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/evm/types"
 	"github.com/InjectiveLabs/test-tube/injective-test-tube/result"
 	"github.com/InjectiveLabs/test-tube/injective-test-tube/testenv"
 	abci "github.com/cometbft/cometbft/abci/types"
-	sdkmath "cosmossdk.io/math"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	evmtypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/evm/types"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/cosmos/gogoproto/proto"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
+	injethsecp256k1 "github.com/InjectiveLabs/injective-core/injective-chain/crypto/ethsecp256k1"
 )
 
 var (
 	envCounter  uint64 = 0
 	envRegister        = sync.Map{}
 	mu          sync.Mutex
+)
+
+const (
+	addressDerivationCosmos       int32 = 0
+	addressDerivationInjectiveEvm int32 = 1
 )
 
 //export InitTestEnv
@@ -92,6 +98,15 @@ func CleanUp(envId uint64) {
 
 //export InitAccount
 func InitAccount(envId uint64, coinsJson string) *C.char {
+	return initAccountWithDerivation(envId, coinsJson, addressDerivationCosmos)
+}
+
+//export InitAccountWithDerivation
+func InitAccountWithDerivation(envId uint64, coinsJson string, derivationMode int32) *C.char {
+	return initAccountWithDerivation(envId, coinsJson, derivationMode)
+}
+
+func initAccountWithDerivation(envId uint64, coinsJson string, derivationMode int32) *C.char {
 	env := loadEnv(envId)
 	var coins sdk.Coins
 
@@ -100,22 +115,9 @@ func InitAccount(envId uint64, coinsJson string) *C.char {
 	}
 
 	priv := secp256k1.GenPrivKey()
-	accAddr := sdk.AccAddress(priv.PubKey().Address())
+	accAddr := addressFromPrivKey(priv, derivationMode)
 	for _, coin := range coins {
-		// create denom if not exist
-		_, hasDenomMetaData := env.App.BankKeeper.GetDenomMetaData(env.Ctx, coin.Denom)
-		if !hasDenomMetaData {
-			denomMetaData := banktypes.Metadata{
-				DenomUnits: []*banktypes.DenomUnit{{
-					Denom:    coin.Denom,
-					Exponent: 0,
-				}},
-				Base: coin.Denom,
-			}
-
-			env.App.BankKeeper.SetDenomMetaData(env.Ctx, denomMetaData)
-		}
-
+		ensureDenomMetadata(env, coin.Denom, 0)
 	}
 
 	err := env.FundAccount(env.Ctx, env.App.BankKeeper, accAddr, coins)
@@ -132,6 +134,15 @@ func InitAccount(envId uint64, coinsJson string) *C.char {
 
 //export InitAccountDecimals
 func InitAccountDecimals(envId uint64, coinsJson string, decimalsJson string) *C.char {
+	return initAccountDecimalsWithDerivation(envId, coinsJson, decimalsJson, addressDerivationCosmos)
+}
+
+//export InitAccountDecimalsWithDerivation
+func InitAccountDecimalsWithDerivation(envId uint64, coinsJson string, decimalsJson string, derivationMode int32) *C.char {
+	return initAccountDecimalsWithDerivation(envId, coinsJson, decimalsJson, derivationMode)
+}
+
+func initAccountDecimalsWithDerivation(envId uint64, coinsJson string, decimalsJson string, derivationMode int32) *C.char {
 	env := loadEnv(envId)
 	var coins sdk.Coins
 
@@ -149,25 +160,9 @@ func InitAccountDecimals(envId uint64, coinsJson string, decimalsJson string) *C
 	}
 
 	priv := secp256k1.GenPrivKey()
-	accAddr := sdk.AccAddress(priv.PubKey().Address())
+	accAddr := addressFromPrivKey(priv, derivationMode)
 	for i, coin := range coins {
-		// create denom if not exist
-		_, hasDenomMetaData := env.App.BankKeeper.GetDenomMetaData(env.Ctx, coin.Denom)
-		if !hasDenomMetaData {
-			denomMetaData := banktypes.Metadata{
-				DenomUnits: []*banktypes.DenomUnit{
-					{
-						Denom:    coin.Denom,
-						Exponent: 0,
-					},
-				},
-				Base:     coin.Denom,
-				Decimals: decimals[i],
-			}
-
-			env.App.BankKeeper.SetDenomMetaData(env.Ctx, denomMetaData)
-		}
-
+		ensureDenomMetadata(env, coin.Denom, decimals[i])
 	}
 
 	err := env.FundAccount(env.Ctx, env.App.BankKeeper, accAddr, coins)
@@ -180,6 +175,36 @@ func InitAccountDecimals(envId uint64, coinsJson string, decimalsJson string) *C
 	envRegister.Store(envId, env)
 
 	return C.CString(base64Priv)
+}
+
+func addressFromPrivKey(priv *secp256k1.PrivKey, derivationMode int32) sdk.AccAddress {
+	switch derivationMode {
+	case addressDerivationCosmos:
+		return sdk.AccAddress(priv.PubKey().Address())
+	case addressDerivationInjectiveEvm:
+		pubKey := &injethsecp256k1.PubKey{Key: priv.PubKey().Bytes()}
+		return sdk.AccAddress(pubKey.Address().Bytes())
+	default:
+		panic(fmt.Sprintf("unsupported address derivation mode: %d", derivationMode))
+	}
+}
+
+func ensureDenomMetadata(env testenv.TestEnv, denom string, decimals uint32) {
+	_, hasDenomMetaData := env.App.BankKeeper.GetDenomMetaData(env.Ctx, denom)
+	if hasDenomMetaData {
+		return
+	}
+
+	denomMetaData := banktypes.Metadata{
+		DenomUnits: []*banktypes.DenomUnit{{
+			Denom:    denom,
+			Exponent: 0,
+		}},
+		Base:     denom,
+		Decimals: decimals,
+	}
+
+	env.App.BankKeeper.SetDenomMetaData(env.Ctx, denomMetaData)
 }
 
 //export IncreaseTime

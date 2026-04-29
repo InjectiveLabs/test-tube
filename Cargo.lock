@@ -3182,13 +3182,15 @@ dependencies = [
 
 [[package]]
 name = "test-tube-inj"
-version = "2.0.10-2"
+version = "2.0.10-3"
 dependencies = [
  "base64 0.21.7",
  "cosmrs",
  "cosmwasm-std 3.0.2",
+ "k256",
  "prost",
  "serde_json",
+ "sha3",
  "thiserror",
 ]
 

@@ -9,7 +9,9 @@ pub use injective_std;
 
 pub use module::*;
 pub use runner::app::InjectiveTestApp;
-pub use test_tube_inj::account::{Account, FeeSetting, NonSigningAccount, SigningAccount};
+pub use test_tube_inj::account::{
+    Account, AddressDerivation, FeeSetting, NonSigningAccount, SigningAccount,
+};
 pub use test_tube_inj::runner::error::{DecodeError, EncodeError, RunnerError};
 pub use test_tube_inj::runner::result::{ExecuteResponse, RunnerExecuteResult, RunnerResult};
 pub use test_tube_inj::runner::Runner;
