@@ -20,7 +20,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Bumped `injective-core@v1.19.0`
 - Bumped `injective-std@=1.19.0`
-- Bumped `test-tube-inj@2.0.10-2`
+- Bumped `injective-cosmwasm@0.3.6`
+- Bumped `cosmwasm-std@3.0.5`
+- Bumped `test-tube-inj@2.0.10`
 
 ### Fixed
 
