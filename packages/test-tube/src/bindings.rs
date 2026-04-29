@@ -225,6 +225,12 @@ extern "C" {
     pub fn FinalizeBlock(envId: GoUint64, tx: GoString) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
+    pub fn FinalizeBlockEvm(
+        envId: GoUint64,
+        base64RawEthTxsJson: GoString,
+    ) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
     pub fn IncreaseTime(envId: GoUint64, seconds: GoInt64);
 }
 extern "C" {

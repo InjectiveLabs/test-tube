@@ -11,9 +11,9 @@ use prost::Message;
 
 use crate::account::{Account, FeeSetting, SigningAccount};
 use crate::bindings::{
-    AccountNumber, AccountSequence, CleanUp, FinalizeBlock, GetBlockHeight, GetBlockTime,
-    GetParamSet, GetValidatorAddress, GetValidatorPrivateKey, IncreaseTime, InitAccount,
-    InitAccountDecimals, InitTestEnv, Query, Simulate,
+    AccountNumber, AccountSequence, CleanUp, FinalizeBlock, FinalizeBlockEvm, GetBlockHeight,
+    GetBlockTime, GetParamSet, GetValidatorAddress, GetValidatorPrivateKey, IncreaseTime,
+    InitAccount, InitAccountDecimals, InitTestEnv, Query, Simulate,
 };
 use crate::redefine_as_go_string;
 use crate::runner::error::{DecodeError, EncodeError, RunnerError};
@@ -366,6 +366,29 @@ impl BaseApp {
             let pset = RawResult::from_non_null_ptr(pset).into_result()?;
             let pset = P::decode(pset.as_slice()).map_err(DecodeError::ProtoDecodeError)?;
             Ok(pset)
+        }
+    }
+
+    pub fn execute_signed_evm_txs_raw_response(
+        &self,
+        raw_txs: &[Vec<u8>],
+    ) -> RunnerResult<ResponseFinalizeBlock> {
+        let base64_raw_txs = raw_txs
+            .iter()
+            .map(|raw_tx| BASE64_STANDARD.encode(raw_tx))
+            .collect::<Vec<_>>();
+
+        let base64_raw_txs_json =
+            serde_json::to_string(&base64_raw_txs).map_err(EncodeError::JsonEncodeError)?;
+        redefine_as_go_string!(base64_raw_txs_json);
+
+        unsafe {
+            let res = FinalizeBlockEvm(self.id, base64_raw_txs_json);
+            let res = RawResult::from_non_null_ptr(res).into_result()?;
+
+            ResponseFinalizeBlock::decode(res.as_slice())
+                .map_err(DecodeError::ProtoDecodeError)
+                .map_err(RunnerError::DecodeError)
         }
     }
 }

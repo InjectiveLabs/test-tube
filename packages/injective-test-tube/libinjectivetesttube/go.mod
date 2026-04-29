@@ -35,7 +35,7 @@ require (
 	github.com/cosmos/ibc-apps/modules/ibc-hooks/v8 v8.0.0 // indirect
 	github.com/cosmos/ibc-go/modules/capability v1.0.1 // indirect
 	github.com/cosmos/ibc-go/v8 v8.7.0 // indirect
-	github.com/ethereum/go-ethereum v1.15.7 // indirect
+	github.com/ethereum/go-ethereum v1.15.7
 	github.com/ferranbt/fastssz v0.1.4 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.1 // indirect
 	github.com/go-test/deep v1.0.7 // indirect

@@ -1,3 +1,4 @@
+use cosmrs::proto::tendermint::v0_38::abci::ResponseFinalizeBlock;
 use cosmwasm_std::Coin;
 use prost::Message;
 use test_tube_inj::account::SigningAccount;
@@ -114,6 +115,13 @@ impl InjectiveTestApp {
         type_url: &str,
     ) -> RunnerResult<P> {
         self.inner.get_param_set(subspace, type_url)
+    }
+
+    pub fn execute_signed_evm_txs_raw_response(
+        &self,
+        raw_txs: &[Vec<u8>],
+    ) -> RunnerResult<ResponseFinalizeBlock> {
+        self.inner.execute_signed_evm_txs_raw_response(raw_txs)
     }
 }
 
