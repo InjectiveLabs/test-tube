@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.20.0 - 2026-06-15
+
+### Changed
+
+- Bumped `injective-core@v1.20.0`
+- Bumped `injective-std@=1.20.0`
+- Bumped `injective-cosmwasm@0.3.7`, including transitive `injective-math@0.3.7`
+- Bumped `test-tube-inj@2.0.11`
+
+### Fixed
+
+- Updated test app bootstrap for the `injective-core@v1.20.0` app config API
+- Updated exchange and oracle test compatibility for new `injective-std@1.20.0` fields
+
 ## 1.19.0 - 2026-04-29
 
 ### Added

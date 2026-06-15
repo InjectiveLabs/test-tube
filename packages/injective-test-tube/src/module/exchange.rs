@@ -919,6 +919,7 @@ mod tests {
                     open_notional_cap: Some(OpenNotionalCap {
                         cap: Some(Cap::Uncapped(OpenNotionalCapUncapped {})),
                     }),
+                    cross_margin_eligible: false,
                 },
                 &admin,
             )

@@ -381,7 +381,7 @@ impl BaseApp {
             tx::SignDoc::new(&tx_body, &auth_info, &chain_id, account_number).map_err(|e| {
                 match e.downcast::<prost::EncodeError>() {
                     Ok(encode_err) => EncodeError::ProtoEncodeError(encode_err),
-                    Err(e) => panic!("expect `prost::EncodeError` but got {:?}", e),
+                    Err(e) => panic!("expect `prost::EncodeError` but got {e:?}"),
                 }
             })?;
 
@@ -391,7 +391,7 @@ impl BaseApp {
             .to_bytes()
             .map_err(|e| match e.downcast::<prost::EncodeError>() {
                 Ok(encode_err) => EncodeError::ProtoEncodeError(encode_err),
-                Err(e) => panic!("expect `prost::EncodeError` but got {:?}", e),
+                Err(e) => panic!("expect `prost::EncodeError` but got {e:?}"),
             })
             .map_err(RunnerError::EncodeError)
     }

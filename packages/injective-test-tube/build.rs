@@ -16,7 +16,7 @@ fn main() {
             .join("artifacts")
             .join("libinjectivetesttube.docrs.h")
     } else {
-        out_dir.join(format!("lib{}.h", lib_name))
+        out_dir.join(format!("lib{lib_name}.h"))
     };
     // rerun when go code is updated
     emit_rerun_if_changed(&manifest_dir.join("libinjectivetesttube"));
@@ -67,7 +67,7 @@ fn main() {
 
     // disable linking if docrs
     if std::env::var("DOCS_RS").is_err() {
-        println!("cargo:rustc-link-lib=dylib={}", lib_name);
+        println!("cargo:rustc-link-lib=dylib={lib_name}");
     }
 
     // The bindgen::Builder is the main entry point
