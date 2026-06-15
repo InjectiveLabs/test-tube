@@ -1806,7 +1806,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha3",
- "test-tube-inj",
+ "test-tube-inj 2.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3183,6 +3183,22 @@ dependencies = [
 [[package]]
 name = "test-tube-inj"
 version = "2.0.11"
+dependencies = [
+ "base64 0.21.7",
+ "cosmrs",
+ "cosmwasm-std 3.0.5",
+ "k256",
+ "prost",
+ "serde_json",
+ "sha3",
+ "thiserror",
+]
+
+[[package]]
+name = "test-tube-inj"
+version = "2.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00f4fc723ea738896f18a633a34ebd3c70d24cf136075bfc981250aa7e781729"
 dependencies = [
  "base64 0.21.7",
  "cosmrs",
