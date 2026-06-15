@@ -239,7 +239,7 @@ impl RawResult {
                 2 => RunnerError::ExecuteError {
                     msg: content_string,
                 },
-                _ => panic!("undefined code: {}", code),
+                _ => panic!("undefined code: {code}"),
             };
             Some(Self(Err(error)))
         }

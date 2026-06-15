@@ -101,9 +101,7 @@ mod tests {
         assert!(closing_time > 0, "closing_time should be positive");
         assert!(
             closing_time > block_time_sec,
-            "closing_time ({}) should be bigger than block_time_sec ({})",
-            closing_time,
-            block_time_sec
+            "closing_time ({closing_time}) should be bigger than block_time_sec ({block_time_sec})"
         );
 
         app.increase_time(1);

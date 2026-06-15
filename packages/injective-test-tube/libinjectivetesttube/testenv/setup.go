@@ -17,7 +17,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/cosmos/cosmos-sdk/server"
-	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -31,6 +30,7 @@ import (
 
 	// injective
 	"github.com/InjectiveLabs/injective-core/injective-chain/app"
+	appconfig "github.com/InjectiveLabs/injective-core/injective-chain/app/config"
 	injcodectypes "github.com/InjectiveLabs/injective-core/injective-chain/codec/types"
 	exchangetypes "github.com/InjectiveLabs/injective-core/injective-chain/modules/exchange/types"
 	exchangetypesv2 "github.com/InjectiveLabs/injective-core/injective-chain/modules/exchange/types/v2"
@@ -64,22 +64,11 @@ type TestEnv struct {
 	NodeHome           string
 }
 
-type AppOptions map[string]interface{}
-
-func (m AppOptions) Get(key string) interface{} {
-	v, ok := m[key]
-	if !ok {
-		return nil
-	}
-
-	return v
-}
-
-func NewAppOptionsWithFlagHome(homePath string) servertypes.AppOptions {
-	return AppOptions{
-		flags.FlagHome:   homePath,
-		server.FlagTrace: true,
-	}
+func NewAppConfigWithFlagHome(homePath string) appconfig.Config {
+	cfg := *appconfig.DefaultConfig()
+	cfg.Set(flags.FlagHome, homePath)
+	cfg.Set(server.FlagTrace, true)
+	return cfg
 }
 
 func NewInjectiveApp(nodeHome string) *app.InjectiveApp {
@@ -89,7 +78,7 @@ func NewInjectiveApp(nodeHome string) *app.InjectiveApp {
 		db,
 		nil,
 		true,
-		NewAppOptionsWithFlagHome(nodeHome),
+		NewAppConfigWithFlagHome(nodeHome),
 		baseapp.SetChainID("injective-777"),
 	)
 }
